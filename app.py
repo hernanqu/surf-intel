@@ -1,0 +1,349 @@
+from flask import Flask, jsonify, render_template
+import requests
+
+app = Flask(__name__)
+
+# --------------------------------------------------
+# SURFER PROFILE
+# --------------------------------------------------
+
+SURFER = {
+    "board": '6\'8" Haydenshape Hypto Krypto Soft',
+    "volume_liters": 52,
+    "level": "beginner / progressing intermediate",
+    "objective": "skill progression",
+}
+
+# --------------------------------------------------
+# SPOT
+# --------------------------------------------------
+
+VENICE = {
+    "name": "Venice Breakwater",
+    "latitude": 33.9832,
+    "longitude": -118.4743,
+}
+
+OPEN_METEO_URL = "https://marine-api.open-meteo.com/v1/marine"
+
+
+# --------------------------------------------------
+# MARINE DATA
+# --------------------------------------------------
+
+HOURLY = ",".join([
+    "wave_height",
+    "wave_direction",
+    "wave_period",
+    "wave_peak_period",
+    "wind_wave_height",
+    "wind_wave_direction",
+    "wind_wave_period",
+    "swell_wave_height",
+    "swell_wave_direction",
+    "swell_wave_period",
+    "secondary_swell_wave_height",
+    "secondary_swell_wave_direction",
+    "secondary_swell_wave_period",
+    "tertiary_swell_wave_height",
+    "tertiary_swell_wave_direction",
+    "tertiary_swell_wave_period",
+    "sea_surface_temperature",
+])
+
+CURRENT = ",".join([
+    "wave_height",
+    "wave_direction",
+    "wave_period",
+    "wave_peak_period",
+    "wind_wave_height",
+    "wind_wave_direction",
+    "wind_wave_period",
+    "swell_wave_height",
+    "swell_wave_direction",
+    "swell_wave_period",
+    "secondary_swell_wave_height",
+    "secondary_swell_wave_direction",
+    "secondary_swell_wave_period",
+    "tertiary_swell_wave_height",
+    "tertiary_swell_wave_direction",
+    "tertiary_swell_wave_period",
+    "sea_surface_temperature",
+])
+
+
+# --------------------------------------------------
+# HELPERS
+# --------------------------------------------------
+
+def meters_to_feet(meters):
+    if meters is None:
+        return None
+    return round(meters * 3.28084, 1)
+
+
+def celsius_to_fahrenheit(celsius):
+    if celsius is None:
+        return None
+    return round((celsius * 9 / 5) + 32, 1)
+
+
+def compass_direction(degrees):
+    if degrees is None:
+        return "Unknown"
+
+    directions = [
+        "N", "NNE", "NE", "ENE",
+        "E", "ESE", "SE", "SSE",
+        "S", "SSW", "SW", "WSW",
+        "W", "WNW", "NW", "NNW"
+    ]
+
+    index = round(degrees / 22.5) % 16
+    return directions[index]
+
+
+# --------------------------------------------------
+# SURF DECISION ENGINE
+# --------------------------------------------------
+
+def score_wave_size(height_ft):
+    """
+    Score based on suitability for a 6'8", ~52L softboard
+    and a progressing surfer.
+
+    This is deliberately conservative.
+    """
+
+    if height_ft is None:
+        return 50
+
+    if height_ft < 1.5:
+        return 45
+
+    if height_ft < 2.0:
+        return 65
+
+    if height_ft < 3.0:
+        return 90
+
+    if height_ft < 4.0:
+        return 78
+
+    if height_ft < 5.0:
+        return 55
+
+    if height_ft < 6.0:
+        return 30
+
+    return 10
+
+
+def score_period(period_s):
+    """
+    Longer period generally means more organized wave energy.
+    But very long-period swell can become powerful quickly.
+    """
+
+    if period_s is None:
+        return 50
+
+    if period_s < 7:
+        return 40
+
+    if period_s < 9:
+        return 65
+
+    if period_s < 12:
+        return 90
+
+    if period_s < 14:
+        return 75
+
+    return 55
+
+
+def score_combination(height_ft, period_s):
+    """
+    Penalize combinations that can become disproportionately
+    powerful for the current surfer profile.
+    """
+
+    if height_ft is None or period_s is None:
+        return 50
+
+    # Small + short period = weak/poor progression
+    if height_ft < 2.0 and period_s < 8:
+        return 45
+
+    # Moderate size + moderate period = ideal zone
+    if 2.0 <= height_ft < 4.0 and 8 <= period_s <= 12:
+        return 90
+
+    # Larger waves with longer periods become increasingly serious
+    if height_ft >= 4.0 and period_s >= 12:
+        return 40
+
+    if height_ft >= 5.0:
+        return 25
+
+    return 65
+
+
+def make_assessment(current):
+    wave_height_ft = meters_to_feet(
+        current.get("wave_height")
+    )
+
+    wave_period_s = current.get("wave_period")
+
+    wave_direction = current.get("wave_direction")
+
+    size_score = score_wave_size(wave_height_ft)
+    period_score = score_period(wave_period_s)
+    combination_score = score_combination(
+        wave_height_ft,
+        wave_period_s
+    )
+
+    # Weighted score
+    score = round(
+        (size_score * 0.40)
+        + (period_score * 0.25)
+        + (combination_score * 0.35)
+    )
+
+    # Hard safety limits
+    if wave_height_ft is not None and wave_height_ft >= 6:
+        status = "NO-GO"
+
+    elif wave_height_ft is not None and wave_height_ft >= 5:
+        status = "NO-GO"
+
+    elif score >= 80:
+        status = "GO"
+
+    elif score >= 55:
+        status = "CAUTION"
+
+    else:
+        status = "NO-GO"
+
+    # Explanation
+    if status == "GO":
+        reason = (
+            "Wave size and energy are well matched to your "
+            "6'8\" Hypto Krypto Soft. Conditions should provide "
+            "useful opportunities for catching and working on "
+            "fundamentals."
+        )
+
+    elif status == "CAUTION":
+        if wave_height_ft is not None and wave_height_ft < 2:
+            reason = (
+                "The wave field is relatively small. Your board "
+                "can handle it, but wave energy may be limited "
+                "for a productive progression session."
+            )
+        elif wave_period_s is not None and wave_period_s < 8:
+            reason = (
+                "Wave energy is relatively disorganized and the "
+                "period is short. Surfable, but potentially weak "
+                "or inconsistent."
+            )
+        else:
+            reason = (
+                "Conditions are surfable on your 6'8\", but there "
+                "is a meaningful tradeoff in wave energy, size, "
+                "or consistency."
+            )
+
+    else:
+        reason = (
+            "Wave energy and/or size are outside the preferred "
+            "progression range for your current board and skill "
+            "level."
+        )
+
+    return {
+        "status": status,
+        "score": score,
+        "reason": reason,
+        "wave_height_ft": wave_height_ft,
+        "wave_period_s": (
+            round(wave_period_s, 1)
+            if wave_period_s is not None
+            else None
+        ),
+        "wave_direction": wave_direction,
+        "wave_compass": compass_direction(wave_direction),
+        "size_score": size_score,
+        "period_score": period_score,
+        "combination_score": combination_score,
+    }
+
+
+# --------------------------------------------------
+# API
+# --------------------------------------------------
+
+def get_marine_data():
+    params = {
+        "latitude": VENICE["latitude"],
+        "longitude": VENICE["longitude"],
+        "hourly": HOURLY,
+        "current": CURRENT,
+        "timezone": "America/Los_Angeles",
+        "forecast_days": 7,
+    }
+
+    response = requests.get(
+        OPEN_METEO_URL,
+        params=params,
+        timeout=10
+    )
+
+    response.raise_for_status()
+
+    return response.json()
+
+
+@app.route("/")
+def index():
+    return render_template(
+        "index.html",
+        spot=VENICE,
+        surfer=SURFER
+    )
+
+
+@app.route("/api/marine")
+def marine():
+
+    data = get_marine_data()
+
+    current = data.get("current", {})
+
+    assessment = make_assessment(current)
+
+    water_temp_c = current.get(
+        "sea_surface_temperature"
+    )
+
+    return jsonify({
+        "spot": VENICE,
+        "surfer": SURFER,
+        "assessment": assessment,
+        "water_temperature_f": celsius_to_fahrenheit(
+            water_temp_c
+        ),
+        "current": current,
+    })
+
+
+# --------------------------------------------------
+# RUN
+# --------------------------------------------------
+
+if __name__ == "__main__":
+    app.run(debug=True)
