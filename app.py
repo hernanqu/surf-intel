@@ -25,6 +25,7 @@ VENICE = {
 }
 
 OPEN_METEO_URL = "https://marine-api.open-meteo.com/v1/marine"
+OPEN_METEO_WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
 
 
 # --------------------------------------------------
@@ -191,6 +192,7 @@ def score_combination(height_ft, period_s):
 
 
 def make_assessment(current):
+
     wave_height_ft = meters_to_feet(
         current.get("wave_height")
     )
@@ -199,14 +201,46 @@ def make_assessment(current):
 
     wave_direction = current.get("wave_direction")
 
+    wind_speed_kmh = current.get(
+        "wind_speed_10m"
+    )
+
+    wind_direction = current.get(
+        "wind_direction_10m"
+    )
+
+    wind_speed_kt = (
+        round(wind_speed_kmh * 0.539957, 1)
+        if wind_speed_kmh is not None
+        else None
+    )
+
+    if wind_speed_kt is None:
+        wind_label = "UNKNOWN"
+    elif wind_speed_kt <= 1:
+        wind_label = "GLASSY AF"
+    elif wind_speed_kt <= 4:
+        wind_label = "GLASSY"
+    elif wind_speed_kt <= 7:
+        wind_label = "CLEAN"
+    elif wind_speed_kt <= 11:
+        wind_label = "BREEZY"
+    elif wind_speed_kt <= 15:
+        wind_label = "WINDY"
+    else:
+        wind_label = "BLOWN TF OUT"
+
     size_score = score_wave_size(wave_height_ft)
+
     period_score = score_period(wave_period_s)
+
     combination_score = score_combination(
         wave_height_ft,
         wave_period_s
     )
 
     # Weighted score
+
     score = round(
         (size_score * 0.40)
         + (period_score * 0.25)
@@ -214,23 +248,22 @@ def make_assessment(current):
     )
 
     # Hard safety limits
+
     if wave_height_ft is not None and wave_height_ft >= 6:
         status = "NO-GO"
-
     elif wave_height_ft is not None and wave_height_ft >= 5:
         status = "NO-GO"
-
     elif score >= 80:
         status = "GO"
-
     elif score >= 55:
         status = "CAUTION"
-
     else:
         status = "NO-GO"
 
     # Explanation
+
     if status == "GO":
+
         reason = (
             "Wave size and energy are well matched to your "
             "6'8\" Hypto Krypto Soft. Conditions should provide "
@@ -239,19 +272,25 @@ def make_assessment(current):
         )
 
     elif status == "CAUTION":
+
         if wave_height_ft is not None and wave_height_ft < 2:
+
             reason = (
                 "The wave field is relatively small. Your board "
                 "can handle it, but wave energy may be limited "
                 "for a productive progression session."
             )
+
         elif wave_period_s is not None and wave_period_s < 8:
+
             reason = (
                 "Wave energy is relatively disorganized and the "
                 "period is short. Surfable, but potentially weak "
                 "or inconsistent."
             )
+
         else:
+
             reason = (
                 "Conditions are surfable on your 6'8\", but there "
                 "is a meaningful tradeoff in wave energy, size, "
@@ -259,6 +298,7 @@ def make_assessment(current):
             )
 
     else:
+
         reason = (
             "Wave energy and/or size are outside the preferred "
             "progression range for your current board and skill "
@@ -280,6 +320,10 @@ def make_assessment(current):
         "size_score": size_score,
         "period_score": period_score,
         "combination_score": combination_score,
+        "wind_speed_kt": wind_speed_kt,
+        "wind_direction": wind_direction,
+        "wind_compass": compass_direction(wind_direction),
+        "wind_label": wind_label,
     }
 
 
@@ -288,7 +332,8 @@ def make_assessment(current):
 # --------------------------------------------------
 
 def get_marine_data():
-    params = {
+
+    marine_params = {
         "latitude": VENICE["latitude"],
         "longitude": VENICE["longitude"],
         "hourly": HOURLY,
@@ -297,15 +342,36 @@ def get_marine_data():
         "forecast_days": 7,
     }
 
-    response = requests.get(
+    marine_response = requests.get(
         OPEN_METEO_URL,
-        params=params,
+        params=marine_params,
         timeout=10
     )
 
-    response.raise_for_status()
+    marine_response.raise_for_status()
 
-    return response.json()
+    marine_data = marine_response.json()
+
+    weather_params = {
+        "latitude": VENICE["latitude"],
+        "longitude": VENICE["longitude"],
+        "current": "wind_speed_10m,wind_direction_10m",
+        "timezone": "America/Los_Angeles",
+    }
+
+    weather_response = requests.get(
+        OPEN_METEO_WEATHER_URL,
+        params=weather_params,
+        timeout=10
+    )
+
+    weather_response.raise_for_status()
+
+    weather_data = weather_response.json()
+
+    marine_data["wind"] = weather_data.get("current", {})
+
+    return marine_data
 
 
 @app.route("/")
@@ -324,6 +390,16 @@ def marine():
 
     current = data.get("current", {})
 
+    wind = data.get("wind", {})
+
+    current["wind_speed_10m"] = wind.get(
+        "wind_speed_10m"
+    )
+
+    current["wind_direction_10m"] = wind.get(
+        "wind_direction_10m"
+    )
+
     assessment = make_assessment(current)
 
     water_temp_c = current.get(
@@ -338,6 +414,7 @@ def marine():
             water_temp_c
         ),
         "current": current,
+        "wind": wind,
     })
 
 
