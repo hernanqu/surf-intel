@@ -267,6 +267,30 @@
         <div class="card">
 
             <div class="label">
+
+                Wind
+
+            </div>
+
+            <div
+                id="windCondition"
+                class="value"
+            >
+                --
+            </div>
+
+            <div
+                id="windDetails"
+                class="unit"
+            >
+                --
+            </div>
+
+        </div>
+
+        <div class="card">
+
+            <div class="label">
                 Water
             </div>
 
@@ -322,7 +346,13 @@ async function loadSurfData() {
             ' <span class="unit">' +
             assessment.wave_direction +
             '°</span>';
+document.getElementById("windCondition").textContent =
+    assessment.wind_label;
 
+document.getElementById("windDetails").textContent =
+    assessment.wind_speed_kt +
+    " kt " +
+    assessment.wind_compass;
         document.getElementById("waterTemp").innerHTML =
             data.water_temperature_f +
             ' <span class="unit">°F</span>';

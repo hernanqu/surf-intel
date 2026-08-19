@@ -22,6 +22,10 @@ VENICE = {
     "name": "Venice Breakwater",
     "latitude": 33.9832,
     "longitude": -118.4743,
+    "wind_profile": {
+        "offshore": [(45, 135)],
+        "onshore": [(225, 315)],
+    },
 }
 
 OPEN_METEO_URL = "https://marine-api.open-meteo.com/v1/marine"
@@ -102,6 +106,23 @@ def compass_direction(degrees):
 
     index = round(degrees / 22.5) % 16
     return directions[index]
+
+
+def classify_wind(wind_direction, wind_profile):
+    if wind_direction is None:
+        return "UNKNOWN"
+
+    direction = wind_direction % 360
+
+    for start, end in wind_profile.get("offshore", []):
+        if start <= direction <= end:
+            return "OFFSHORE"
+
+    for start, end in wind_profile.get("onshore", []):
+        if start <= direction <= end:
+            return "ONSHORE"
+
+    return "CROSS-SHORE"
 
 
 # --------------------------------------------------
@@ -215,6 +236,37 @@ def make_assessment(current):
         else None
     )
 
+    wind_quality = classify_wind(
+        wind_direction,
+        VENICE.get("wind_profile", {})
+    )
+
+    if wind_speed_kt is None:
+        wind_penalty = 0
+    elif wind_speed_kt >= 16:
+        wind_penalty = 100
+    elif wind_quality == "OFFSHORE":
+        if wind_speed_kt <= 7:
+            wind_penalty = -5
+        elif wind_speed_kt <= 11:
+            wind_penalty = -2
+        else:
+            wind_penalty = 0
+    elif wind_quality == "ONSHORE":
+        if wind_speed_kt <= 7:
+            wind_penalty = 5
+        elif wind_speed_kt <= 11:
+            wind_penalty = 15
+        else:
+            wind_penalty = 30
+    else:
+        if wind_speed_kt <= 7:
+            wind_penalty = 0
+        elif wind_speed_kt <= 11:
+            wind_penalty = 5
+        else:
+            wind_penalty = 15
+
     if wind_speed_kt is None:
         wind_label = "UNKNOWN"
     elif wind_speed_kt <= 1:
@@ -247,62 +299,66 @@ def make_assessment(current):
         + (combination_score * 0.35)
     )
 
-    # Hard safety limits
+    # Apply directional wind influence
+    score = max(0, min(100, score - wind_penalty))
 
-    if wave_height_ft is not None and wave_height_ft >= 6:
+    # Hard safety limits
+    if wind_speed_kt is not None and wind_speed_kt >= 16:
+        status = "NO-GO"
+    elif wave_height_ft is not None and wave_height_ft >= 6:
         status = "NO-GO"
     elif wave_height_ft is not None and wave_height_ft >= 5:
         status = "NO-GO"
-    elif score >= 80:
+    elif score >= 75:
         status = "GO"
-    elif score >= 55:
-        status = "CAUTION"
     else:
         status = "NO-GO"
 
     # Explanation
-
-    if status == "GO":
-
+    if status == "NO-GO" and wind_speed_kt is not None and wind_speed_kt >= 16:
         reason = (
-            "Wave size and energy are well matched to your "
-            "6'8\" Hypto Krypto Soft. Conditions should provide "
-            "useful opportunities for catching and working on "
-            "fundamentals."
+            "Wind is too strong and is degrading the surface conditions. "
+            "The waves may be surfable, but the overall conditions are not worth the session."
         )
-
-    elif status == "CAUTION":
-
-        if wave_height_ft is not None and wave_height_ft < 2:
-
-            reason = (
-                "The wave field is relatively small. Your board "
-                "can handle it, but wave energy may be limited "
-                "for a productive progression session."
-            )
-
-        elif wave_period_s is not None and wave_period_s < 8:
-
-            reason = (
-                "Wave energy is relatively disorganized and the "
-                "period is short. Surfable, but potentially weak "
-                "or inconsistent."
-            )
-
-        else:
-
-            reason = (
-                "Conditions are surfable on your 6'8\", but there "
-                "is a meaningful tradeoff in wave energy, size, "
-                "or consistency."
-            )
-
-    else:
-
+    elif status == "NO-GO" and wind_quality == "ONSHORE" and wind_speed_kt is not None and wind_speed_kt >= 8:
         reason = (
-            "Wave energy and/or size are outside the preferred "
-            "progression range for your current board and skill "
-            "level."
+            "Onshore wind is degrading the surface enough to outweigh "
+            "otherwise workable wave size and energy."
+        )
+    elif status == "NO-GO" and wave_height_ft is not None and wave_height_ft >= 5:
+        reason = (
+            "Wave size is outside the preferred range. "
+            "The surf is too powerful for a productive session."
+        )
+    elif status == "NO-GO" and wave_height_ft is not None and wave_height_ft < 2:
+        reason = (
+            "The wave field is too small for a productive session. "
+            "There is not enough wave energy to make the most of the conditions."
+        )
+    elif status == "NO-GO" and wave_period_s is not None and wave_period_s < 8:
+        reason = (
+            "Wave energy is weak and inconsistent. "
+            "The short period is limiting the quality of the surf."
+        )
+    elif status == "GO" and wind_quality == "OFFSHORE":
+        reason = (
+            "Offshore wind is helping clean up the surface, while wave size "
+            "and energy remain within a workable range."
+        )
+    elif status == "GO" and wind_speed_kt is not None and wind_speed_kt <= 7:
+        reason = (
+            "Clean surface conditions with workable wave size and energy. "
+            "Good conditions for a productive session."
+        )
+    elif status == "GO":
+        reason = (
+            "Wave size, energy, and surface conditions are workable. "
+            "Good conditions for a productive session."
+        )
+    else:
+        reason = (
+            "Conditions are marginal. Wave size, energy, or surface quality "
+            "is limiting the overall quality of the session."
         )
 
     return {
