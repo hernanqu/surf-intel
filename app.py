@@ -1,7 +1,16 @@
 from flask import Flask, jsonify, render_template
 import requests
+import time
 
 app = Flask(__name__)
+
+# Simple in-memory cache to avoid excessive upstream API requests.
+MARINE_CACHE = {
+    "data": None,
+    "timestamp": 0,
+}
+
+CACHE_TTL = 600  # 10 minutes
 
 # --------------------------------------------------
 # SURFER PROFILE
@@ -388,6 +397,14 @@ def make_assessment(current):
 # --------------------------------------------------
 
 def get_marine_data():
+    # Return cached data if it is still fresh.
+    now = time.time()
+
+    if (
+        MARINE_CACHE["data"] is not None
+        and now - MARINE_CACHE["timestamp"] < CACHE_TTL
+    ):
+        return MARINE_CACHE["data"]
 
     marine_params = {
         "latitude": VENICE["latitude"],
@@ -403,9 +420,7 @@ def get_marine_data():
         params=marine_params,
         timeout=10
     )
-
     marine_response.raise_for_status()
-
     marine_data = marine_response.json()
 
     weather_params = {
@@ -420,12 +435,14 @@ def get_marine_data():
         params=weather_params,
         timeout=10
     )
-
     weather_response.raise_for_status()
 
     weather_data = weather_response.json()
-
     marine_data["wind"] = weather_data.get("current", {})
+
+    # Store the successful result.
+    MARINE_CACHE["data"] = marine_data
+    MARINE_CACHE["timestamp"] = now
 
     return marine_data
 
