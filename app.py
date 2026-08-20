@@ -318,6 +318,20 @@ def make_assessment(current):
         status = "NO-GO"
     elif wind_speed_kt is not None and wind_speed_kt >= 16:
         status = "NO-GO"
+    elif (
+        wave_height_ft is not None
+        and wave_period_s is not None
+        and wave_height_ft >= 2
+        and wave_period_s >= 16
+    ):
+        status = "NO-GO"
+    elif (
+        wave_height_ft is not None
+        and wave_period_s is not None
+        and wave_height_ft >= 3
+        and wave_period_s >= 14
+    ):
+        status = "NO-GO"
     elif wave_height_ft is not None and wave_height_ft >= 6:
         status = "NO-GO"
     elif wave_height_ft is not None and wave_height_ft >= 5:
@@ -339,6 +353,19 @@ def make_assessment(current):
         reason = (
             "Onshore wind is making the surface too messy "
             "for a productive session."
+        )
+    elif (
+        status == "NO-GO"
+        and wave_height_ft is not None
+        and wave_period_s is not None
+        and (
+            (wave_height_ft >= 2 and wave_period_s >= 16)
+            or (wave_height_ft >= 3 and wave_period_s >= 14)
+        )
+    ):
+        reason = (
+            "Long-period swell is making the surf more powerful "
+            "than the wave height suggests."
         )
     elif status == "NO-GO" and wave_height_ft is not None and wave_height_ft >= 5:
         reason = (
