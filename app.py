@@ -399,7 +399,6 @@ def make_assessment(current):
 def get_marine_data():
     # Return cached data if it is still fresh.
     now = time.time()
-
     if (
         MARINE_CACHE["data"] is not None
         and now - MARINE_CACHE["timestamp"] < CACHE_TTL
@@ -430,17 +429,19 @@ def get_marine_data():
         "timezone": "America/Los_Angeles",
     }
 
-    weather_response = requests.get(
-        OPEN_METEO_WEATHER_URL,
-        params=weather_params,
-        timeout=10
-    )
-    weather_response.raise_for_status()
+    try:
+        weather_response = requests.get(
+            OPEN_METEO_WEATHER_URL,
+            params=weather_params,
+            timeout=10
+        )
+        weather_response.raise_for_status()
+        weather_data = weather_response.json()
+        marine_data["wind"] = weather_data.get("current", {})
+    except requests.RequestException:
+        marine_data["wind"] = {}
 
-    weather_data = weather_response.json()
-    marine_data["wind"] = weather_data.get("current", {})
-
-    # Store the successful result.
+    # Store the successful marine result.
     MARINE_CACHE["data"] = marine_data
     MARINE_CACHE["timestamp"] = now
 
