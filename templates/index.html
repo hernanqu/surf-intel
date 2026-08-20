@@ -2,7 +2,6 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -13,368 +12,408 @@
     <title>Surf Intel</title>
 
     <style>
-
         * {
             box-sizing: border-box;
         }
 
+        html,
         body {
             margin: 0;
-            background: #0b0f14;
-            color: #e5e7eb;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            min-height: 100%;
+            background: #000;
+            color: #f5f5f5;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Helvetica Neue",
+                Arial,
+                sans-serif;
         }
 
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 40px 24px;
+        body {
+            min-height: 100vh;
         }
 
-        .header {
-            margin-bottom: 30px;
+        .page {
+            min-height: 100vh;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 48px 64px 40px;
         }
 
-        .eyebrow {
-            color: #6b7280;
+        .brand {
+            position: absolute;
+            top: 48px;
+            left: 64px;
             font-size: 12px;
-            letter-spacing: 2px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
             text-transform: uppercase;
         }
 
-        h1 {
-            margin: 6px 0;
-            font-size: 38px;
-            letter-spacing: -1px;
+        .main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .location {
-            color: #9ca3af;
-            font-size: 16px;
-        }
-
-        .verdict {
-            border: 1px solid #26303b;
-            border-radius: 16px;
-            padding: 32px;
-            margin-bottom: 24px;
-            background: #11161d;
-        }
-
-        .verdict-label {
-            color: #6b7280;
-            font-size: 12px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
+        .intel {
+            width: min(680px, 100%);
+            text-align: center;
+            transform: translateY(-1vh);
         }
 
         .status {
-            font-size: 64px;
-            font-weight: 800;
-            margin: 8px 0 12px;
-            letter-spacing: -2px;
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(150px, 27vw, 310px);
+            line-height: 0.72;
+            font-weight: 700;
+            letter-spacing: -0.10em;
+            transform: translateX(-0.04em);
         }
 
         .status.go {
-            color: #4ade80;
-        }
-
-        .status.caution {
-            color: #facc15;
+            color: #874cff;
         }
 
         .status.no-go {
-            color: #f87171;
+            color: #ff5252;
+            font-size: clamp(92px, 18vw, 210px);
+            letter-spacing: -0.08em;
+        }
+
+        .status.loading,
+        .status.error {
+            color: #555;
+        }
+
+        .location {
+            margin-top: 48px;
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.01em;
         }
 
         .reason {
-            color: #b8c0cc;
-            max-width: 700px;
-            font-size: 17px;
-            line-height: 1.5;
-        }
-
-        .board {
-            margin-top: 22px;
-            color: #6b7280;
+            max-width: 540px;
+            margin: 42px auto 0;
             font-size: 13px;
+            font-weight: 600;
+            line-height: 1.55;
+            text-transform: uppercase;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 14px;
+        .conditions {
+            margin: 48px auto 0;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
         }
 
-        .card {
-            background: #11161d;
-            border: 1px solid #26303b;
-            border-radius: 12px;
-            padding: 22px;
+        .condition {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.05;
         }
 
         .label {
-            color: #6b7280;
-            font-size: 11px;
+            font-size: 12px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
 
         .value {
-            font-size: 27px;
+            margin-top: 2px;
+            font-size: 13px;
             font-weight: 700;
-            margin-top: 9px;
+            text-transform: uppercase;
         }
 
-        .unit {
-            font-size: 14px;
-            color: #9ca3af;
+        .subvalue {
+            margin-top: 2px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .footer {
+            position: absolute;
+            right: 64px;
+            bottom: 38px;
+            font-size: 12px;
             font-weight: 400;
         }
 
-        .loading {
-            color: #6b7280;
-        }
-
-        @media (max-width: 800px) {
-
-            .grid {
-                grid-template-columns: repeat(2, 1fr);
+        @media (max-width: 700px) {
+            .page {
+                padding: 30px 22px 28px;
             }
 
-        }
-
-        @media (max-width: 500px) {
-
-            .container {
-                padding: 24px 16px;
+            .brand {
+                top: 30px;
+                left: 22px;
+                font-size: 10px;
             }
 
-            h1 {
-                font-size: 30px;
+            .intel {
+                transform: translateY(1vh);
             }
 
             .status {
-                font-size: 48px;
+                font-size: clamp(125px, 43vw, 220px);
             }
 
-            .grid {
-                grid-template-columns: 1fr 1fr;
+            .status.no-go {
+                font-size: clamp(78px, 28vw, 150px);
             }
 
+            .location {
+                margin-top: 38px;
+                font-size: 13px;
+            }
+
+            .reason {
+                margin-top: 32px;
+                max-width: 330px;
+                font-size: 11px;
+            }
+
+            .conditions {
+                margin-top: 38px;
+                gap: 15px;
+            }
+
+            .label {
+                font-size: 10px;
+            }
+
+            .value {
+                font-size: 12px;
+            }
+
+            .subvalue {
+                font-size: 11px;
+            }
+
+            .footer {
+                right: 22px;
+                bottom: 22px;
+                font-size: 10px;
+            }
         }
-
     </style>
-
 </head>
 
 <body>
 
-<div class="container">
+<div class="page">
 
-    <div class="header">
-
-        <div class="eyebrow">
-            Surf Intelligence
-        </div>
-
-        <h1>Surf Intel</h1>
-
-        <div class="location">
-            {{ spot.name }}
-        </div>
-
+    <div class="brand">
+        Surf Intel
     </div>
 
+    <main class="main">
 
-    <div class="verdict">
+        <section class="intel">
 
-        <div class="verdict-label">
-            Session Assessment
-        </div>
-
-        <div
-            id="status"
-            class="status loading"
-        >
-            LOADING
-        </div>
-
-        <div
-            id="reason"
-            class="reason"
-        >
-            Analyzing current marine conditions...
-        </div>
-
-        <div class="board">
-            Profile: 6'8" Haydenshape Hypto Krypto Softboard
-        </div>
-
-    </div>
-
-
-    <div class="grid">
-
-        <div class="card">
-
-            <div class="label">
-                Wave Height
+            <div
+                id="status"
+                class="status loading"
+            >
+                ...
             </div>
 
             <div
-                id="waveHeight"
-                class="value"
+                id="location"
+                class="location"
             >
-                --
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="label">
-                Period
+                {{ spot.name }}
             </div>
 
             <div
-                id="wavePeriod"
-                class="value"
+                id="reason"
+                class="reason"
             >
-                --
+                Checking conditions...
             </div>
 
-        </div>
+            <div class="conditions">
 
+                <div class="condition">
+                    <div class="label">
+                        Wave Height
+                    </div>
 
-        <div class="card">
+                    <div
+                        id="waveHeight"
+                        class="value"
+                    >
+                        --
+                    </div>
+                </div>
 
-            <div class="label">
-                Direction
+                <div class="condition">
+                    <div class="label">
+                        Period
+                    </div>
+
+                    <div
+                        id="wavePeriod"
+                        class="value"
+                    >
+                        --
+                    </div>
+                </div>
+
+                <div class="condition">
+                    <div class="label">
+                        Direction
+                    </div>
+
+                    <div
+                        id="waveDirection"
+                        class="value"
+                    >
+                        --
+                    </div>
+                </div>
+
+                <div class="condition">
+                    <div class="label">
+                        Wind
+                    </div>
+
+                    <div
+                        id="windCondition"
+                        class="value"
+                    >
+                        --
+                    </div>
+
+                    <div
+                        id="windDetails"
+                        class="subvalue"
+                    >
+                        --
+                    </div>
+                </div>
+
+                <div class="condition">
+                    <div class="label">
+                        Water
+                    </div>
+
+                    <div
+                        id="waterTemp"
+                        class="value"
+                    >
+                        --
+                    </div>
+                </div>
+
             </div>
 
-            <div
-                id="waveDirection"
-                class="value"
-            >
-                --
-            </div>
+        </section>
 
-        </div>
+    </main>
 
-
-        <div class="card">
-
-            <div class="label">
-
-                Wind
-
-            </div>
-
-            <div
-                id="windCondition"
-                class="value"
-            >
-                --
-            </div>
-
-            <div
-                id="windDetails"
-                class="unit"
-            >
-                --
-            </div>
-
-        </div>
-
-        <div class="card">
-
-            <div class="label">
-                Water
-            </div>
-
-            <div
-                id="waterTemp"
-                class="value"
-            >
-                --
-            </div>
-
-        </div>
-
+    <div class="footer">
+        2026
     </div>
 
 </div>
 
-
 <script>
-
 async function loadSurfData() {
-
     try {
-
         const response = await fetch("/api/marine");
 
-        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(
+                "Marine API returned " + response.status
+            );
+        }
 
+        const data = await response.json();
         const assessment = data.assessment;
 
         const statusElement =
             document.getElementById("status");
 
-        statusElement.textContent =
-            assessment.status;
+        const status =
+            assessment.status || "ERROR";
 
-        statusElement.className =
-            "status " +
-            assessment.status.toLowerCase().replace("-", "");
+        statusElement.textContent = status;
+
+        if (status === "GO") {
+            statusElement.className = "status go";
+        } else if (status === "NO-GO") {
+            statusElement.className = "status no-go";
+        } else {
+            statusElement.className = "status error";
+        }
 
         document.getElementById("reason").textContent =
-            assessment.reason;
+            assessment.reason ||
+            "Conditions unavailable.";
 
-        document.getElementById("waveHeight").innerHTML =
-            assessment.wave_height_ft +
-            ' <span class="unit">ft</span>';
+        document.getElementById("waveHeight").textContent =
+            assessment.wave_height_ft != null
+                ? assessment.wave_height_ft + " FT"
+                : "--";
 
-        document.getElementById("wavePeriod").innerHTML =
-            assessment.wave_period_s +
-            ' <span class="unit">sec</span>';
+        document.getElementById("wavePeriod").textContent =
+            assessment.wave_period_s != null
+                ? assessment.wave_period_s + " SEC"
+                : "--";
 
-        document.getElementById("waveDirection").innerHTML =
-            assessment.wave_compass +
-            ' <span class="unit">' +
-            assessment.wave_direction +
-            '°</span>';
-document.getElementById("windCondition").textContent =
-    assessment.wind_label;
+        document.getElementById("waveDirection").textContent =
+            assessment.wave_direction != null
+                ? assessment.wave_compass +
+                  " " +
+                  assessment.wave_direction +
+                  "°"
+                : "--";
 
-document.getElementById("windDetails").textContent =
-    assessment.wind_speed_kt +
-    " kt " +
-    assessment.wind_compass;
-        document.getElementById("waterTemp").innerHTML =
-            data.water_temperature_f +
-            ' <span class="unit">°F</span>';
+        document.getElementById("windCondition").textContent =
+            assessment.wind_label &&
+            assessment.wind_label !== "UNKNOWN"
+                ? assessment.wind_label
+                : "--";
+
+        document.getElementById("windDetails").textContent =
+            assessment.wind_speed_kt != null
+                ? assessment.wind_speed_kt +
+                  " KT " +
+                  assessment.wind_compass
+                : "--";
+
+        document.getElementById("waterTemp").textContent =
+            data.water_temperature_f != null
+                ? data.water_temperature_f + "°F"
+                : "--";
 
     } catch (error) {
-
         console.error(error);
 
-        document.getElementById("status").textContent =
-            "ERROR";
+        const statusElement =
+            document.getElementById("status");
+
+        statusElement.textContent = "ERROR";
+        statusElement.className = "status error";
 
         document.getElementById("reason").textContent =
-            "Unable to retrieve marine conditions.";
-
+            "Unable to retrieve current conditions.";
     }
-
 }
 
 loadSurfData();
-
 </script>
 
 </body>
-
 </html>
