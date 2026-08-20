@@ -231,6 +231,7 @@
             <div
                 id="location"
                 class="location"
+                data-spot="{{ spot.name }}"
             >
                 {{ spot.name }}
             </div>
@@ -411,6 +412,31 @@ async function loadSurfData() {
             "Unable to retrieve current conditions.";
     }
 }
+
+function updateLocationTime() {
+    const locationElement =
+        document.getElementById("location");
+
+    const spotName =
+        locationElement.dataset.spot;
+
+    const formatter = new Intl.DateTimeFormat(
+        "en-US",
+        {
+            timeZone: "America/Los_Angeles",
+            hour: "numeric",
+            minute: "2-digit"
+        }
+    );
+
+    const time = formatter.format(new Date());
+
+    locationElement.textContent =
+        spotName.toUpperCase() + " " + time;
+}
+
+updateLocationTime();
+setInterval(updateLocationTime, 60000);
 
 loadSurfData();
 </script>

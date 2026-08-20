@@ -239,6 +239,8 @@ def make_assessment(current):
         "wind_direction_10m"
     )
 
+    is_day = current.get("is_day")
+
     wind_speed_kt = (
         round(wind_speed_kmh * 0.539957, 1)
         if wind_speed_kmh is not None
@@ -312,7 +314,9 @@ def make_assessment(current):
     score = max(0, min(100, score - wind_penalty))
 
     # Hard safety limits
-    if wind_speed_kt is not None and wind_speed_kt >= 16:
+    if is_day == 0:
+        status = "NO-GO"
+    elif wind_speed_kt is not None and wind_speed_kt >= 16:
         status = "NO-GO"
     elif wave_height_ft is not None and wave_height_ft >= 6:
         status = "NO-GO"
@@ -324,7 +328,9 @@ def make_assessment(current):
         status = "NO-GO"
 
     # Explanation
-    if status == "NO-GO" and wind_speed_kt is not None and wind_speed_kt >= 16:
+    if is_day == 0:
+        reason = "It's dark. Check back after dawn."
+    elif status == "NO-GO" and wind_speed_kt is not None and wind_speed_kt >= 16:
         reason = (
             "Wind is too strong and is degrading the surface conditions. "
             "The waves may be surfable, but the overall conditions are not worth the session."
@@ -425,7 +431,7 @@ def get_marine_data():
     weather_params = {
         "latitude": VENICE["latitude"],
         "longitude": VENICE["longitude"],
-        "current": "wind_speed_10m,wind_direction_10m",
+        "current": "wind_speed_10m,wind_direction_10m,is_day",
         "timezone": "America/Los_Angeles",
     }
 
@@ -473,6 +479,8 @@ def marine():
     current["wind_direction_10m"] = wind.get(
         "wind_direction_10m"
     )
+
+    current["is_day"] = wind.get("is_day")
 
     assessment = make_assessment(current)
 
