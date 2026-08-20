@@ -90,8 +90,24 @@
             color: #555;
         }
 
+        .window {
+            margin-top: 34px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .tide {
+            margin-top: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
         .location {
-            margin-top: 48px;
+            margin-top: 18px;
             font-size: 15px;
             font-weight: 700;
             text-transform: uppercase;
@@ -106,12 +122,12 @@
         }
 
         .refresh-button {
-            margin-top: 48px;
-            padding: 0;
+            margin-top: 34px;
+            padding: 12px 18px;
             border: 0;
             background: transparent;
             color: #888;
-            font-size: 10px;
+            font-size: 14px;
             line-height: 1;
             font-weight: 400;
             cursor: pointer;
@@ -124,7 +140,7 @@
 
         .reason {
             max-width: 540px;
-            margin: 42px auto 0;
+            margin: 6px auto 0;
             font-size: 13px;
             font-weight: 600;
             line-height: 1.55;
@@ -132,17 +148,21 @@
         }
 
         .conditions {
-            margin: 48px auto 0;
+            margin: 18px auto 0;
             display: flex;
             flex-direction: column;
-            gap: 18px;
+            gap: 6px;
         }
 
         .condition {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            line-height: 1.05;
+            line-height: 1.25;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .condition span {
+            margin-left: 4px;
         }
 
         .label {
@@ -202,14 +222,14 @@
             }
 
             .reason {
-                margin-top: 32px;
+                margin-top: 6px;
                 max-width: 330px;
                 font-size: 11px;
             }
 
             .conditions {
-                margin-top: 38px;
-                gap: 15px;
+                margin-top: 16px;
+                gap: 5px;
             }
 
             .label {
@@ -222,6 +242,12 @@
 
             .subvalue {
                 font-size: 11px;
+            }
+
+            .refresh-button {
+                margin-top: 28px;
+                padding: 16px 22px;
+                font-size: 16px;
             }
 
             .footer {
@@ -252,6 +278,14 @@
                 ...
             </div>
 
+            <div
+                id="window"
+                class="window"
+            >
+                WINDOW: --
+            </div>
+
+
             <div class="location-row">
                 <div
                     id="location"
@@ -261,15 +295,6 @@
                     {{ spot.name }}
                 </div>
 
-                <button
-                    id="refreshButton"
-                    class="refresh-button"
-                    type="button"
-                    aria-label="Refresh conditions"
-                    title="Refresh conditions"
-                >
-                    ↻
-                </button>
             </div>
 
             <div
@@ -280,80 +305,35 @@
             </div>
 
             <div class="conditions">
-
                 <div class="condition">
-                    <div class="label">
-                        Wave Height
-                    </div>
-
-                    <div
-                        id="waveHeight"
-                        class="value"
-                    >
-                        --
-                    </div>
+                    WAVE HEIGHT: <span id="waveHeight">--</span>
                 </div>
-
                 <div class="condition">
-                    <div class="label">
-                        Period
-                    </div>
-
-                    <div
-                        id="wavePeriod"
-                        class="value"
-                    >
-                        --
-                    </div>
+                    PERIOD: <span id="wavePeriod">--</span>
                 </div>
-
                 <div class="condition">
-                    <div class="label">
-                        Direction
-                    </div>
-
-                    <div
-                        id="waveDirection"
-                        class="value"
-                    >
-                        --
-                    </div>
+                    DIRECTION: <span id="waveDirection">--</span>
                 </div>
-
                 <div class="condition">
-                    <div class="label">
-                        Wind
-                    </div>
-
-                    <div
-                        id="windCondition"
-                        class="value"
-                    >
-                        --
-                    </div>
-
-                    <div
-                        id="windDetails"
-                        class="subvalue"
-                    >
-                        --
-                    </div>
+                    WIND: <span id="windCondition">--</span> <span id="windDetails">--</span>
                 </div>
-
                 <div class="condition">
-                    <div class="label">
-                        Water
-                    </div>
-
-                    <div
-                        id="waterTemp"
-                        class="value"
-                    >
-                        --
-                    </div>
+                    TIDE: <span id="tide">--</span>
                 </div>
-
+                <div class="condition">
+                    WATER: <span id="waterTemp">--</span>
+                </div>
             </div>
+
+            <button
+            id="refreshButton"
+            class="refresh-button"
+            type="button"
+            aria-label="Refresh conditions"
+            title="Refresh conditions"
+            >
+            ↻
+            </button>
 
         </section>
 
@@ -398,6 +378,20 @@ async function loadSurfData(forceRefresh = false) {
         } else {
             statusElement.className = "status error";
         }
+
+        document.getElementById("window").textContent =
+            data.window
+                ? "WINDOW: " + data.window
+                : "WINDOW: --";
+
+        document.getElementById("tide").textContent =
+            data.tide &&
+            data.tide.height_ft != null &&
+            data.tide.direction
+                ? data.tide.height_ft +
+                  " FT " +
+                  data.tide.direction
+                : "--";
 
         document.getElementById("reason").textContent =
             assessment.reason ||
@@ -472,7 +466,7 @@ function updateLocationTime() {
     const time = formatter.format(new Date());
 
     locationElement.textContent =
-        spotName.toUpperCase() + " " + time;
+        spotName.toUpperCase() + " " + time + ":";
 }
 
 updateLocationTime();

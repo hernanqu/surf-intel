@@ -40,6 +40,9 @@ VENICE = {
 OPEN_METEO_URL = "https://marine-api.open-meteo.com/v1/marine"
 OPEN_METEO_WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
 
+NOAA_TIDE_URL = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter"
+NOAA_TIDE_STATION = "9410840"
+
 
 # --------------------------------------------------
 # MARINE DATA
@@ -425,9 +428,179 @@ def make_assessment(current):
     }
 
 
+def calculate_window(data, current_status):
+    hourly = data.get("hourly", {})
+    wind_hourly = data.get("wind_hourly", {})
+
+    marine_times = hourly.get("time", [])
+    wind_times = wind_hourly.get("time", [])
+
+    if not marine_times or not wind_times:
+        return None
+
+    wind_index = {
+        timestamp: index
+        for index, timestamp in enumerate(wind_times)
+    }
+
+    current_time = data.get("current", {}).get("time")
+
+    if not current_time:
+        return None
+
+    start_index = None
+
+    for index, timestamp in enumerate(marine_times):
+        if timestamp <= current_time:
+            start_index = index
+        else:
+            break
+
+    if start_index is None:
+        return None
+
+    hours = 0
+
+    for index in range(start_index + 1, len(marine_times)):
+        timestamp = marine_times[index]
+
+        if timestamp not in wind_index:
+            break
+
+        wind_i = wind_index[timestamp]
+
+        future = {
+            "wave_height": hourly.get("wave_height", [None])[index],
+            "wave_direction": hourly.get("wave_direction", [None])[index],
+            "wave_period": hourly.get("wave_period", [None])[index],
+            "wind_speed_10m": wind_hourly.get("wind_speed_10m", [None])[wind_i],
+            "wind_direction_10m": wind_hourly.get("wind_direction_10m", [None])[wind_i],
+            "is_day": wind_hourly.get("is_day", [None])[wind_i],
+        }
+
+        future_assessment = make_assessment(future)
+
+        if future_assessment.get("status") != current_status:
+            break
+
+        hours += 1
+
+    if hours == 0:
+        return "<1 HR"
+
+    return "~1 HR+"
+
+
 # --------------------------------------------------
 # API
 # --------------------------------------------------
+
+def get_tide_data():
+    params = {
+        "product": "predictions",
+        "application": "surf-intel",
+        "station": NOAA_TIDE_STATION,
+        "date": "today",
+        "datum": "MLLW",
+        "time_zone": "lst_ldt",
+        "units": "english",
+        "interval": "h",
+        "format": "json",
+    }
+
+    try:
+        response = requests.get(
+            NOAA_TIDE_URL,
+            params=params,
+            timeout=10
+        )
+        response.raise_for_status()
+
+        return response.json().get("predictions", [])
+
+    except requests.RequestException:
+        return []
+
+
+def make_tide_summary(predictions):
+    if len(predictions) < 2:
+        return None
+
+    from datetime import datetime
+
+    now = datetime.now()
+
+    points = []
+
+    for prediction in predictions:
+        try:
+            timestamp = datetime.strptime(
+                prediction["t"],
+                "%Y-%m-%d %H:%M"
+            )
+            height = float(prediction["v"])
+            points.append((timestamp, height))
+        except (KeyError, ValueError, TypeError):
+            continue
+
+    if len(points) < 2:
+        return None
+
+    previous_point = None
+    next_point = None
+
+    for point in points:
+        if point[0] <= now:
+            previous_point = point
+        elif point[0] > now:
+            next_point = point
+            break
+
+    if previous_point is None:
+        previous_point = points[0]
+
+    if next_point is None:
+        next_point = points[-1]
+
+    previous_time, previous_height = previous_point
+    next_time, next_height = next_point
+
+    total_seconds = (
+        next_time - previous_time
+    ).total_seconds()
+
+    if total_seconds > 0:
+        elapsed_seconds = (
+            now - previous_time
+        ).total_seconds()
+
+        progress = max(
+            0,
+            min(1, elapsed_seconds / total_seconds)
+        )
+
+        height = previous_height + (
+            (next_height - previous_height) * progress
+        )
+    else:
+        height = previous_height
+
+    if next_height > previous_height:
+        direction = "↑"
+        trend = "RISING"
+    elif next_height < previous_height:
+        direction = "↓"
+        trend = "FALLING"
+    else:
+        direction = "→"
+        trend = "SLACK"
+
+    return {
+        "height_ft": round(height, 1),
+        "direction": direction,
+        "trend": trend,
+    }
+
 
 def get_marine_data():
     # Return cached data if it is still fresh.
@@ -459,7 +632,9 @@ def get_marine_data():
         "latitude": VENICE["latitude"],
         "longitude": VENICE["longitude"],
         "current": "wind_speed_10m,wind_direction_10m,is_day",
+        "hourly": "wind_speed_10m,wind_direction_10m,is_day",
         "timezone": "America/Los_Angeles",
+        "forecast_days": 2,
     }
 
     try:
@@ -471,8 +646,10 @@ def get_marine_data():
         weather_response.raise_for_status()
         weather_data = weather_response.json()
         marine_data["wind"] = weather_data.get("current", {})
+        marine_data["wind_hourly"] = weather_data.get("hourly", {})
     except requests.RequestException:
         marine_data["wind"] = {}
+        marine_data["wind_hourly"] = {}
 
     # Store the successful marine result.
     MARINE_CACHE["data"] = marine_data
@@ -519,6 +696,15 @@ def marine():
 
     assessment = make_assessment(current)
 
+    window = calculate_window(
+        data,
+        assessment.get("status")
+    )
+
+    tide = make_tide_summary(
+        get_tide_data()
+    )
+
     water_temp_c = current.get(
         "sea_surface_temperature"
     )
@@ -527,6 +713,8 @@ def marine():
         "spot": VENICE,
         "surfer": SURFER,
         "assessment": assessment,
+        "window": window,
+        "tide": tide,
         "water_temperature_f": celsius_to_fahrenheit(
             water_temp_c
         ),
