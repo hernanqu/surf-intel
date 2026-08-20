@@ -264,34 +264,34 @@ def make_assessment(current):
         else:
             wind_penalty = 0
     elif wind_quality == "ONSHORE":
-        if wind_speed_kt <= 7:
+        if wind_speed_kt <= 4:
             wind_penalty = 5
+        elif wind_speed_kt <= 7:
+            wind_penalty = 12
         elif wind_speed_kt <= 11:
-            wind_penalty = 15
+            wind_penalty = 20
         else:
-            wind_penalty = 30
+            wind_penalty = 35
     else:
-        if wind_speed_kt <= 7:
+        if wind_speed_kt <= 4:
             wind_penalty = 0
+        elif wind_speed_kt <= 7:
+            wind_penalty = 3
         elif wind_speed_kt <= 11:
-            wind_penalty = 5
+            wind_penalty = 8
         else:
             wind_penalty = 15
 
     if wind_speed_kt is None:
         wind_label = "UNKNOWN"
-    elif wind_speed_kt <= 1:
-        wind_label = "GLASSY AF"
-    elif wind_speed_kt <= 4:
-        wind_label = "GLASSY"
-    elif wind_speed_kt <= 7:
-        wind_label = "CLEAN"
-    elif wind_speed_kt <= 11:
-        wind_label = "BREEZY"
-    elif wind_speed_kt <= 15:
-        wind_label = "WINDY"
-    else:
+    elif wind_speed_kt >= 16:
         wind_label = "BLOWN TF OUT"
+    elif wind_quality == "ONSHORE":
+        wind_label = "ONSHORE"
+    elif wind_quality == "OFFSHORE":
+        wind_label = "OFFSHORE"
+    else:
+        wind_label = "CROSS-SHORE"
 
     size_score = score_wave_size(wave_height_ft)
 
@@ -335,10 +335,10 @@ def make_assessment(current):
             "Wind is too strong and is degrading the surface conditions. "
             "The waves may be surfable, but the overall conditions are not worth the session."
         )
-    elif status == "NO-GO" and wind_quality == "ONSHORE" and wind_speed_kt is not None and wind_speed_kt >= 8:
+    elif status == "NO-GO" and wind_quality == "ONSHORE":
         reason = (
-            "Onshore wind is degrading the surface enough to outweigh "
-            "otherwise workable wave size and energy."
+            "Onshore wind is making the surface too messy "
+            "for a productive session."
         )
     elif status == "NO-GO" and wave_height_ft is not None and wave_height_ft >= 5:
         reason = (
