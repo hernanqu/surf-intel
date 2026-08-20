@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 import requests
 import time
 
@@ -492,6 +492,14 @@ def index():
 
 @app.route("/api/marine")
 def marine():
+
+    force_refresh = (
+        request.args.get("refresh") == "1"
+    )
+
+    if force_refresh:
+        MARINE_CACHE["data"] = None
+        MARINE_CACHE["timestamp"] = 0
 
     data = get_marine_data()
 

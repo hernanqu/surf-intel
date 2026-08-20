@@ -98,6 +98,29 @@
             letter-spacing: 0.01em;
         }
 
+        .location-row {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .refresh-button {
+            margin-top: 48px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: #888;
+            font-size: 17px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .refresh-button:disabled {
+            opacity: 0.35;
+            cursor: default;
+        }
+
         .reason {
             max-width: 540px;
             margin: 42px auto 0;
@@ -228,12 +251,24 @@
                 ...
             </div>
 
-            <div
-                id="location"
-                class="location"
-                data-spot="{{ spot.name }}"
-            >
-                {{ spot.name }}
+            <div class="location-row">
+                <div
+                    id="location"
+                    class="location"
+                    data-spot="{{ spot.name }}"
+                >
+                    {{ spot.name }}
+                </div>
+
+                <button
+                    id="refreshButton"
+                    class="refresh-button"
+                    type="button"
+                    aria-label="Refresh conditions"
+                    title="Refresh conditions"
+                >
+                    ↻
+                </button>
             </div>
 
             <div
@@ -330,9 +365,13 @@
 </div>
 
 <script>
-async function loadSurfData() {
+async function loadSurfData(forceRefresh = false) {
     try {
-        const response = await fetch("/api/marine");
+        const endpoint = forceRefresh
+            ? "/api/marine?refresh=1"
+            : "/api/marine";
+
+        const response = await fetch(endpoint);
 
         if (!response.ok) {
             throw new Error(
@@ -437,6 +476,24 @@ function updateLocationTime() {
 
 updateLocationTime();
 setInterval(updateLocationTime, 60000);
+
+const refreshButton =
+    document.getElementById("refreshButton");
+
+refreshButton.addEventListener("click", async () => {
+    refreshButton.disabled = true;
+    refreshButton.textContent = "…";
+
+    await loadSurfData(true);
+
+    updateLocationTime();
+
+    refreshButton.textContent = "↻";
+
+    setTimeout(() => {
+        refreshButton.disabled = false;
+    }, 30000);
+});
 
 loadSurfData();
 </script>
