@@ -230,9 +230,26 @@ def make_assessment(current):
         current.get("wave_height")
     )
 
-    wave_period_s = current.get("wave_period")
+    wave_height_range = None
+    if wave_height_ft is not None:
+        lower = int(wave_height_ft)
+        upper = lower + 1
+        wave_height_range = f"{lower}–{upper} FT"
+
 
     wave_direction = current.get("wave_direction")
+
+    swell_height_ft = meters_to_feet(
+        current.get("swell_wave_height")
+    )
+    swell_period_s = current.get(
+        "swell_wave_period"
+    )
+    swell_direction = current.get(
+        "swell_wave_direction"
+    )
+
+    wave_period_s = swell_period_s
 
     wind_speed_kmh = current.get(
         "wind_speed_10m"
@@ -317,10 +334,35 @@ def make_assessment(current):
     score = max(0, min(100, score - wind_penalty))
 
     # Hard safety limits
-    if is_day == 0:
+
+    if wind_speed_kt is not None and wind_speed_kt >= 22:
+        status = "DANGEROUS"
+
+    elif wave_height_ft is not None and wave_height_ft >= 7:
+        status = "DANGEROUS"
+
+    elif (
+        wave_height_ft is not None
+        and wave_period_s is not None
+        and wave_height_ft >= 4
+        and wave_period_s >= 16
+    ):
+        status = "DANGEROUS"
+
+    elif (
+        wave_height_ft is not None
+        and wave_period_s is not None
+        and wave_height_ft >= 3
+        and wave_period_s >= 18
+    ):
+        status = "DANGEROUS"
+
+    elif is_day == 0:
         status = "NO-GO"
+
     elif wind_speed_kt is not None and wind_speed_kt >= 16:
         status = "NO-GO"
+
     elif (
         wave_height_ft is not None
         and wave_period_s is not None
@@ -328,6 +370,7 @@ def make_assessment(current):
         and wave_period_s >= 16
     ):
         status = "NO-GO"
+
     elif (
         wave_height_ft is not None
         and wave_period_s is not None
@@ -335,56 +378,107 @@ def make_assessment(current):
         and wave_period_s >= 14
     ):
         status = "NO-GO"
+
     elif wave_height_ft is not None and wave_height_ft >= 6:
         status = "NO-GO"
+
     elif wave_height_ft is not None and wave_height_ft >= 5:
         status = "NO-GO"
+
+    elif wave_height_ft is not None and wave_height_ft < 2:
+        status = "NO-GO"
+
     elif score >= 75:
         status = "GO"
+
     else:
         status = "NO-GO"
 
     # Explanation
-    if is_day == 0:
+    if status == "DANGEROUS":
+        if wind_speed_kt is not None and wind_speed_kt >= 22:
+            reason = (
+                "Wind conditions are severe enough to make the session unsafe."
+            )
+        elif wave_height_ft is not None and wave_height_ft >= 7:
+            reason = (
+                "Surf size has crossed into a dangerous range."
+            )
+        else:
+            reason = (
+                "Long-period swell is creating dangerous surf energy "
+                "for the current wave height."
+            )
+
+    elif is_day == 0:
         reason = "It's dark. Check back after dawn."
-    elif status == "NO-GO" and wind_speed_kt is not None and wind_speed_kt >= 16:
-        reason = (
-            "Wind is too strong and is degrading the surface conditions. "
-            "The waves may be surfable, but the overall conditions are not worth the session."
-        )
-    elif status == "NO-GO" and wind_quality == "ONSHORE":
-        reason = (
-            "Onshore wind is making the surface too messy "
-            "for a productive session."
-        )
-    elif (
-        status == "NO-GO"
-        and wave_height_ft is not None
-        and wave_period_s is not None
-        and (
-            (wave_height_ft >= 2 and wave_period_s >= 16)
-            or (wave_height_ft >= 3 and wave_period_s >= 14)
-        )
-    ):
-        reason = (
-            "Long-period swell is making the surf more powerful "
-            "than the wave height suggests."
-        )
-    elif status == "NO-GO" and wave_height_ft is not None and wave_height_ft >= 5:
-        reason = (
-            "Wave size is outside the preferred range. "
-            "The surf is too powerful for a productive session."
-        )
-    elif status == "NO-GO" and wave_height_ft is not None and wave_height_ft < 2:
-        reason = (
-            "The wave field is too small for a productive session. "
-            "There is not enough wave energy to make the most of the conditions."
-        )
-    elif status == "NO-GO" and wave_period_s is not None and wave_period_s < 8:
-        reason = (
-            "Wave energy is weak and inconsistent. "
-            "The short period is limiting the quality of the surf."
-        )
+
+    elif status == "NO-GO":
+        reason_candidates = []
+
+        if wind_speed_kt is not None and wind_speed_kt >= 16:
+            reason_candidates.append((
+                100,
+                "Wind is too strong and is degrading the surface conditions."
+            ))
+
+        if (
+            wave_height_ft is not None
+            and wave_period_s is not None
+            and (
+                (wave_height_ft >= 2 and wave_period_s >= 16)
+                or (wave_height_ft >= 3 and wave_period_s >= 14)
+            )
+        ):
+            reason_candidates.append((
+                90,
+                "Long-period swell is making the surf more powerful "
+                "than the wave height suggests."
+            ))
+
+        if wave_height_ft is not None and wave_height_ft >= 5:
+            reason_candidates.append((
+                95,
+                "Wave size is outside the preferred range. "
+                "The surf is too powerful for a productive session."
+            ))
+
+        if wave_height_ft is not None and wave_height_ft < 2:
+            reason_candidates.append((
+                75,
+                "The surf is too small and lacks enough energy "
+                "for a productive session."
+            ))
+
+        if wave_period_s is not None and wave_period_s < 8:
+            reason_candidates.append((
+                65,
+                "The short period is limiting wave energy "
+                "and consistency."
+            ))
+
+        if wind_quality == "ONSHORE":
+            onshore_severity = (
+                70 if wind_speed_kt is not None and wind_speed_kt >= 10
+                else 60 if wind_speed_kt is not None and wind_speed_kt >= 7
+                else 45
+            )
+
+            reason_candidates.append((
+                onshore_severity,
+                "Onshore wind is degrading the surface conditions."
+            ))
+
+        if reason_candidates:
+            reason = max(
+                reason_candidates,
+                key=lambda item: item[0]
+            )[1]
+        else:
+            reason = (
+                "Conditions are outside the preferred range "
+                "for a productive session."
+            )
     elif status == "GO" and wind_quality == "OFFSHORE":
         reason = (
             "Offshore wind is helping clean up the surface, while wave size "
@@ -411,12 +505,25 @@ def make_assessment(current):
         "score": score,
         "reason": reason,
         "wave_height_ft": wave_height_ft,
+        "wave_height_range": wave_height_range,
         "wave_period_s": (
             round(wave_period_s, 1)
             if wave_period_s is not None
             else None
         ),
         "wave_direction": wave_direction,
+        "swell_height_ft": (
+            round(swell_height_ft, 1)
+            if swell_height_ft is not None
+            else None
+        ),
+        "swell_period_s": (
+            round(swell_period_s, 1)
+            if swell_period_s is not None
+            else None
+        ),
+        "swell_direction": swell_direction,
+        "swell_compass": compass_direction(swell_direction),
         "wave_compass": compass_direction(wave_direction),
         "size_score": size_score,
         "period_score": period_score,
@@ -632,8 +739,10 @@ def get_marine_data():
         "latitude": VENICE["latitude"],
         "longitude": VENICE["longitude"],
         "current": "wind_speed_10m,wind_direction_10m,is_day",
-        "hourly": "wind_speed_10m,wind_direction_10m,is_day",
+        "hourly": "wind_speed_10m,wind_direction_10m,is_day,precipitation",
+        "daily": "sunrise",
         "timezone": "America/Los_Angeles",
+        "past_days": 3,
         "forecast_days": 2,
     }
 
@@ -647,15 +756,92 @@ def get_marine_data():
         weather_data = weather_response.json()
         marine_data["wind"] = weather_data.get("current", {})
         marine_data["wind_hourly"] = weather_data.get("hourly", {})
+        marine_data["weather_daily"] = weather_data.get("daily", {})
     except requests.RequestException:
         marine_data["wind"] = {}
         marine_data["wind_hourly"] = {}
+        marine_data["weather_daily"] = {}
 
     # Store the successful marine result.
     MARINE_CACHE["data"] = marine_data
     MARINE_CACHE["timestamp"] = now
 
     return marine_data
+
+
+def get_rain_lockout(data):
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    hourly = data.get("wind_hourly", {})
+    times = hourly.get("time", [])
+    precipitation = hourly.get("precipitation", [])
+
+    if not times or not precipitation:
+        return {
+            "active": False,
+            "last_rain": None,
+            "safe_after": None,
+        }
+
+    pacific = ZoneInfo("America/Los_Angeles")
+    now = datetime.now(pacific)
+    last_rain = None
+
+    for time_value, precip in zip(times, precipitation):
+        if precip is None or precip <= 0:
+            continue
+
+        try:
+            rain_time = datetime.fromisoformat(time_value)
+            rain_time = rain_time.replace(tzinfo=pacific)
+        except ValueError:
+            continue
+
+        # Ignore forecast rain that has not happened yet.
+        if rain_time <= now:
+            last_rain = rain_time
+
+    if last_rain is None:
+        return {
+            "active": False,
+            "last_rain": None,
+            "safe_after": None,
+        }
+
+    safe_after = last_rain + timedelta(hours=72)
+
+    return {
+        "active": now < safe_after,
+        "last_rain": last_rain.isoformat(),
+        "safe_after": safe_after.strftime("%a %-I:%M %p").upper(),
+    }
+
+
+def get_next_sunrise(data):
+    daily = data.get("weather_daily", {})
+    sunrise_times = daily.get("sunrise", [])
+
+    if not sunrise_times:
+        return None
+
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    pacific = ZoneInfo("America/Los_Angeles")
+    now = datetime.now(pacific)
+
+    for sunrise in sunrise_times:
+        try:
+            sunrise_dt = datetime.fromisoformat(sunrise)
+            sunrise_dt = sunrise_dt.replace(tzinfo=pacific)
+        except ValueError:
+            continue
+
+        if sunrise_dt > now:
+            return sunrise_dt.strftime("%-I:%M %p")
+
+    return None
 
 
 @app.route("/")
@@ -695,6 +881,18 @@ def marine():
     current["is_day"] = wind.get("is_day")
 
     assessment = make_assessment(current)
+    dawn_patrol = get_next_sunrise(data)
+    rain_lockout = get_rain_lockout(data)
+
+    if (
+        rain_lockout["active"]
+        and assessment["status"] != "DANGEROUS"
+    ):
+        assessment["status"] = "NO-GO"
+        assessment["reason"] = (
+            "Recent rain. Water quality risk. "
+            "Safe after: " + rain_lockout["safe_after"] + "."
+        )
 
     window = calculate_window(
         data,
@@ -713,6 +911,8 @@ def marine():
         "spot": VENICE,
         "surfer": SURFER,
         "assessment": assessment,
+        "dawn_patrol": dawn_patrol,
+        "rain_lockout": rain_lockout,
         "window": window,
         "tide": tide,
         "water_temperature_f": celsius_to_fahrenheit(

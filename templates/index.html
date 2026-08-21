@@ -85,6 +85,12 @@
             letter-spacing: -0.08em;
         }
 
+        .status.dangerous {
+            color: #ff2b2b;
+            font-size: clamp(72px, 14vw, 170px);
+            letter-spacing: -0.07em;
+        }
+
         .status.loading,
         .status.error {
             color: #555;
@@ -375,14 +381,20 @@ async function loadSurfData(forceRefresh = false) {
             statusElement.className = "status go";
         } else if (status === "NO-GO") {
             statusElement.className = "status no-go";
+        } else if (status === "DANGEROUS") {
+            statusElement.className = "status dangerous";
         } else {
             statusElement.className = "status error";
         }
 
-        document.getElementById("window").textContent =
-            data.window
-                ? "WINDOW: " + data.window
-                : "WINDOW: --";
+        const windowEl = document.getElementById("window");
+
+        if (assessment.status === "GO" && data.window) {
+            windowEl.textContent = "WINDOW: " + data.window;
+            windowEl.style.display = "";
+        } else {
+            windowEl.style.display = "none";
+        }
 
         document.getElementById("tide").textContent =
             data.tide &&
@@ -394,24 +406,28 @@ async function loadSurfData(forceRefresh = false) {
                 : "--";
 
         document.getElementById("reason").textContent =
-            assessment.reason ||
-            "Conditions unavailable.";
+            assessment.status === "NO-GO" &&
+            assessment.reason === "It's dark. Check back after dawn." &&
+            data.dawn_patrol
+                ? "It's dark. Dawn patrol: " + data.dawn_patrol + "."
+                : assessment.reason ||
+                  "Conditions unavailable.";
 
         document.getElementById("waveHeight").textContent =
-            assessment.wave_height_ft != null
-                ? assessment.wave_height_ft + " FT"
+            assessment.wave_height_range != null
+                ? assessment.wave_height_range
                 : "--";
 
         document.getElementById("wavePeriod").textContent =
-            assessment.wave_period_s != null
-                ? assessment.wave_period_s + " SEC"
+            assessment.swell_period_s != null
+                ? assessment.swell_period_s + " SEC"
                 : "--";
 
         document.getElementById("waveDirection").textContent =
-            assessment.wave_direction != null
-                ? assessment.wave_compass +
+            assessment.swell_direction != null
+                ? assessment.swell_compass +
                   " " +
-                  assessment.wave_direction +
+                  assessment.swell_direction +
                   "°"
                 : "--";
 
