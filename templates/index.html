@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
 
@@ -16,12 +15,37 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --background: #000000;
+            --text: #f5f5f5;
+            --muted: #6d6d6d;
+            --divider: #262626;
+            --accent: #666666;
+        }
+
+        body.status-go {
+            --accent: #874cff;
+        }
+
+        body.status-no-go {
+            --accent: #ff5252;
+        }
+
+        body.status-yewww {
+            --accent: #3f8cff;
+        }
+
+        body.status-dangerous {
+            --accent: #ff2b2b;
+        }
+
         html,
         body {
             margin: 0;
             min-height: 100%;
-            background: #000;
-            color: #f5f5f5;
+            background: var(--background);
+            color: var(--text);
+
             font-family:
                 -apple-system,
                 BlinkMacSystemFont,
@@ -36,182 +60,190 @@
 
         .page {
             min-height: 100vh;
-            position: relative;
+            padding: 34px 28px 56px;
+        }
+
+        .header {
+            width: min(680px, 100%);
+            margin: 0 auto;
+
             display: flex;
-            flex-direction: column;
-            padding: 48px 64px 40px;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .brand {
-            position: absolute;
-            top: 48px;
-            left: 64px;
-            font-size: 12px;
-            font-weight: 500;
-            letter-spacing: 0.02em;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
             text-transform: uppercase;
         }
 
+        .menu {
+            border: 0;
+            padding: 4px 0;
+            background: transparent;
+            color: var(--accent);
+
+            font-size: 22px;
+            line-height: 1;
+            font-weight: 400;
+
+            cursor: default;
+        }
+
         .main {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: min(680px, 100%);
+            margin: 0 auto;
         }
 
         .intel {
-            width: min(680px, 100%);
+            width: 100%;
+            padding-top: clamp(42px, 6vh, 70px);
             text-align: center;
-            transform: translateY(-1vh);
         }
 
         .status {
             margin: 0;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: clamp(150px, 27vw, 310px);
-            line-height: 0.72;
-            font-weight: 700;
-            letter-spacing: -0.10em;
-            transform: translateX(-0.04em);
-        }
 
-        .status.go {
-            color: #874cff;
+            font-family:
+                Georgia,
+                "Times New Roman",
+                serif;
+
+            font-size: clamp(120px, 20vw, 220px);
+            line-height: 0.85;
+            font-weight: 700;
+            letter-spacing: -0.075em;
+
+            color: var(--accent);
         }
 
         .status.no-go {
-            color: #ff5252;
-            font-size: clamp(92px, 18vw, 210px);
-            letter-spacing: -0.08em;
+            font-size: clamp(82px, 14vw, 160px);
+            letter-spacing: -0.065em;
+        }
+
+        .status.yewww {
+            font-size: clamp(64px, 11vw, 110px);
+            letter-spacing: -0.06em;
         }
 
         .status.dangerous {
-            color: #ff2b2b;
-            font-size: clamp(72px, 14vw, 170px);
-            letter-spacing: -0.07em;
+            font-size: clamp(54px, 9vw, 92px);
+            letter-spacing: -0.055em;
         }
 
         .status.loading,
         .status.error {
-            color: #555;
+            color: var(--muted);
         }
 
         .window {
-            margin-top: 34px;
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
+            margin-top: 28px;
 
-        .tide {
-            margin-top: 8px;
             font-size: 12px;
             font-weight: 700;
-            text-transform: uppercase;
             letter-spacing: 0.04em;
+            text-transform: uppercase;
+
+            color: var(--accent);
         }
 
         .location {
-            margin-top: 18px;
-            font-size: 15px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.01em;
-        }
+            margin-top: 20px;
 
-        .location-row {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .refresh-button {
-            margin-top: 34px;
-            padding: 12px 18px;
-            border: 0;
-            background: transparent;
-            color: #888;
             font-size: 14px;
-            line-height: 1;
-            font-weight: 400;
-            cursor: pointer;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            text-transform: uppercase;
         }
 
-        .refresh-button:disabled {
-            opacity: 1;
-            cursor: pointer;
+        .location-time {
+            color: var(--accent);
         }
 
         .reason {
-            max-width: 540px;
-            margin: 6px auto 0;
-            font-size: 13px;
+            width: min(520px, 100%);
+            margin: 12px auto 0;
+
+            font-size: 12px;
             font-weight: 600;
             line-height: 1.55;
+            letter-spacing: 0.01em;
             text-transform: uppercase;
         }
 
         .conditions {
-            margin: 18px auto 0;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+            width: min(440px, 100%);
+            margin: 34px auto 0;
+
+            border-top: 1px solid var(--divider);
         }
 
         .condition {
-            line-height: 1.25;
-            font-size: 12px;
+            min-height: 50px;
+
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 24px;
+
+            border-bottom: 1px solid var(--divider);
+
+            text-align: left;
+        }
+
+        .condition-label {
+            font-size: 11px;
             font-weight: 700;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
         }
 
-        .condition span {
-            margin-left: 4px;
-        }
-
-        .label {
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .value {
-            margin-top: 2px;
+        .condition-value {
             font-size: 13px;
             font-weight: 700;
+            letter-spacing: 0.01em;
             text-transform: uppercase;
+            text-align: right;
+
+            color: var(--accent);
         }
 
-        .subvalue {
-            margin-top: 2px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
+        .refresh-button {
+            margin-top: 20px;
+            padding: 10px 18px;
+
+            border: 0;
+            background: transparent;
+            color: var(--accent);
+
+            font-size: 17px;
+            line-height: 1;
+            cursor: pointer;
         }
 
-        .footer {
-            position: absolute;
-            right: 64px;
-            bottom: 38px;
-            font-size: 12px;
-            font-weight: 400;
+        .refresh-button:disabled {
+            opacity: 0.45;
+            cursor: default;
         }
 
         @media (max-width: 700px) {
             .page {
-                padding: 30px 22px 28px;
+                padding: 28px 22px 42px;
             }
 
             .brand {
-                top: 30px;
-                left: 22px;
                 font-size: 10px;
             }
 
+            .menu {
+                font-size: 20px;
+            }
+
             .intel {
-                transform: translateY(1vh);
+                padding-top: 78px;
             }
 
             .status {
@@ -222,59 +254,75 @@
                 font-size: clamp(78px, 28vw, 150px);
             }
 
-            .location {
-                margin-top: 38px;
-                font-size: 13px;
+            .status.yewww {
+                font-size: clamp(56px, 17vw, 84px);
             }
 
-            .reason {
-                margin-top: 6px;
-                max-width: 330px;
+            .status.dangerous {
+                font-size: clamp(46px, 14vw, 72px);
+            }
+
+            .window {
+                margin-top: 24px;
                 font-size: 11px;
             }
 
-            .conditions {
-                margin-top: 16px;
-                gap: 5px;
-            }
-
-            .label {
-                font-size: 10px;
-            }
-
-            .value {
+            .location {
+                margin-top: 28px;
                 font-size: 12px;
             }
 
-            .subvalue {
+            .reason {
+                margin-top: 10px;
+                width: min(340px, 100%);
+
                 font-size: 11px;
+                line-height: 1.5;
+            }
+
+            .conditions {
+                margin-top: 42px;
+            }
+
+            .condition {
+                min-height: 54px;
+                gap: 18px;
+            }
+
+            .condition-label {
+                font-size: 10px;
+            }
+
+            .condition-value {
+                font-size: 12px;
             }
 
             .refresh-button {
-                margin-top: 28px;
-                padding: 16px 22px;
-                font-size: 16px;
-            }
-
-            .footer {
-                right: 22px;
-                bottom: 22px;
-                font-size: 10px;
+                margin-top: 26px;
             }
         }
     </style>
 </head>
 
 <body>
-
 <div class="page">
 
-    <div class="brand">
-        Surf Intel
-    </div>
+    <header class="header">
+        <div class="brand">
+            Surf Intel
+        </div>
+
+        <button
+            class="menu"
+            type="button"
+            aria-label="Menu"
+            tabindex="-1"
+        >
+            ☰
+        </button>
+    </header>
 
     <main class="main">
-
         <section class="intel">
 
             <div
@@ -291,16 +339,20 @@
                 WINDOW: --
             </div>
 
-
-            <div class="location-row">
-                <div
-                    id="location"
-                    class="location"
-                    data-spot="{{ spot.name }}"
-                >
+            <div
+                id="location"
+                class="location"
+                data-spot="{{ spot.name }}"
+            >
+                <span id="locationName">
                     {{ spot.name }}
-                </div>
+                </span>
 
+                <span
+                    id="locationTime"
+                    class="location-time"
+                >
+                </span>
             </div>
 
             <div
@@ -311,48 +363,103 @@
             </div>
 
             <div class="conditions">
+
                 <div class="condition">
-                    WAVE HEIGHT: <span id="waveHeight">--</span>
+                    <div class="condition-label">
+                        WAVES
+                    </div>
+
+                    <div
+                        id="waveHeight"
+                        class="condition-value"
+                    >
+                        --
+                    </div>
                 </div>
+
                 <div class="condition">
-                    PERIOD: <span id="wavePeriod">--</span>
+                    <div class="condition-label">
+                        PERIOD
+                    </div>
+
+                    <div
+                        id="wavePeriod"
+                        class="condition-value"
+                    >
+                        --
+                    </div>
                 </div>
+
                 <div class="condition">
-                    DIRECTION: <span id="waveDirection">--</span>
+                    <div class="condition-label">
+                        DIRECTION
+                    </div>
+
+                    <div
+                        id="waveDirection"
+                        class="condition-value"
+                    >
+                        --
+                    </div>
                 </div>
+
                 <div class="condition">
-                    WIND: <span id="windCondition">--</span> <span id="windDetails">--</span>
+                    <div class="condition-label">
+                        WIND
+                    </div>
+
+                    <div class="condition-value">
+                        <span id="windCondition">--</span>
+                        <span id="windDetails">--</span>
+                    </div>
                 </div>
+
                 <div class="condition">
-                    TIDE: <span id="tide">--</span>
+                    <div class="condition-label">
+                        TIDE
+                    </div>
+
+                    <div
+                        id="tide"
+                        class="condition-value"
+                    >
+                        --
+                    </div>
                 </div>
+
                 <div class="condition">
-                    WATER: <span id="waterTemp">--</span>
+                    <div class="condition-label">
+                        WATER
+                    </div>
+
+                    <div
+                        id="waterTemp"
+                        class="condition-value"
+                    >
+                        --
+                    </div>
                 </div>
+
             </div>
 
             <button
-            id="refreshButton"
-            class="refresh-button"
-            type="button"
-            aria-label="Refresh conditions"
-            title="Refresh conditions"
+                id="refreshButton"
+                class="refresh-button"
+                type="button"
+                aria-label="Refresh conditions"
+                title="Refresh conditions"
             >
-            ↻
+                ↻
             </button>
 
         </section>
-
     </main>
-
-    <div class="footer">
-        2026
-    </div>
 
 </div>
 
 <script>
 async function loadSurfData(forceRefresh = false) {
+
     try {
         const endpoint = forceRefresh
             ? "/api/marine?refresh=1"
@@ -377,24 +484,50 @@ async function loadSurfData(forceRefresh = false) {
 
         statusElement.textContent = status;
 
+        document.body.classList.remove(
+            "status-go",
+            "status-no-go",
+            "status-yewww",
+            "status-dangerous"
+        );
+
         if (status === "GO") {
             statusElement.className = "status go";
+            document.body.classList.add("status-go");
+
         } else if (status === "NO-GO") {
             statusElement.className = "status no-go";
+            document.body.classList.add("status-no-go");
+
+        } else if (status === "YEWWW") {
+            statusElement.className = "status yewww";
+            document.body.classList.add("status-yewww");
+
         } else if (status === "DANGEROUS") {
             statusElement.className = "status dangerous";
+            document.body.classList.add("status-dangerous");
+
         } else {
             statusElement.className = "status error";
         }
 
-        const windowEl = document.getElementById("window");
 
-        if (assessment.status === "GO" && data.window) {
-            windowEl.textContent = "WINDOW: " + data.window;
+        const windowEl =
+            document.getElementById("window");
+
+        if (
+            (status === "GO" || status === "YEWWW") &&
+            data.window
+        ) {
+            windowEl.textContent =
+                "WINDOW: " + data.window;
+
             windowEl.style.display = "";
+
         } else {
             windowEl.style.display = "none";
         }
+
 
         document.getElementById("tide").textContent =
             data.tide &&
@@ -405,23 +538,31 @@ async function loadSurfData(forceRefresh = false) {
                   data.tide.direction
                 : "--";
 
+
         document.getElementById("reason").textContent =
-            assessment.status === "NO-GO" &&
-            assessment.reason === "It's dark. Check back after dawn." &&
+            status === "NO-GO" &&
+            assessment.reason ===
+                "It's dark. Check back after dawn." &&
             data.dawn_patrol
-                ? "It's dark. Dawn patrol: " + data.dawn_patrol + "."
+                ? "It's dark. Dawn patrol: " +
+                  data.dawn_patrol +
+                  "."
                 : assessment.reason ||
                   "Conditions unavailable.";
+
 
         document.getElementById("waveHeight").textContent =
             assessment.wave_height_range != null
                 ? assessment.wave_height_range
                 : "--";
 
+
         document.getElementById("wavePeriod").textContent =
             assessment.swell_period_s != null
-                ? assessment.swell_period_s + " SEC"
+                ? assessment.swell_period_s +
+                  " SEC"
                 : "--";
+
 
         document.getElementById("waveDirection").textContent =
             assessment.swell_direction != null
@@ -431,11 +572,13 @@ async function loadSurfData(forceRefresh = false) {
                   "°"
                 : "--";
 
+
         document.getElementById("windCondition").textContent =
             assessment.wind_label &&
             assessment.wind_label !== "UNKNOWN"
                 ? assessment.wind_label
                 : "--";
+
 
         document.getElementById("windDetails").textContent =
             assessment.wind_speed_kt != null
@@ -444,12 +587,15 @@ async function loadSurfData(forceRefresh = false) {
                   assessment.wind_compass
                 : "--";
 
+
         document.getElementById("waterTemp").textContent =
             data.water_temperature_f != null
-                ? data.water_temperature_f + "°F"
+                ? data.water_temperature_f +
+                  "°F"
                 : "--";
 
     } catch (error) {
+
         console.error(error);
 
         const statusElement =
@@ -463,48 +609,73 @@ async function loadSurfData(forceRefresh = false) {
     }
 }
 
+
 function updateLocationTime() {
+
     const locationElement =
         document.getElementById("location");
+
+    const locationNameElement =
+        document.getElementById("locationName");
+
+    const locationTimeElement =
+        document.getElementById("locationTime");
 
     const spotName =
         locationElement.dataset.spot;
 
-    const formatter = new Intl.DateTimeFormat(
-        "en-US",
-        {
-            timeZone: "America/Los_Angeles",
-            hour: "numeric",
-            minute: "2-digit"
-        }
-    );
+    const formatter =
+        new Intl.DateTimeFormat(
+            "en-US",
+            {
+                timeZone: "America/Los_Angeles",
+                hour: "numeric",
+                minute: "2-digit"
+            }
+        );
 
-    const time = formatter.format(new Date());
+    const time =
+        formatter.format(new Date());
 
-    locationElement.textContent =
-        spotName.toUpperCase() + " " + time + ":";
+    locationNameElement.textContent =
+        spotName.toUpperCase();
+
+    locationTimeElement.textContent =
+        " " + time;
 }
 
+
 updateLocationTime();
-setInterval(updateLocationTime, 60000);
+
+setInterval(
+    updateLocationTime,
+    60000
+);
+
 
 const refreshButton =
     document.getElementById("refreshButton");
 
-refreshButton.addEventListener("click", async () => {
-    refreshButton.disabled = true;
-    refreshButton.textContent = "…";
 
-    await loadSurfData(true);
+refreshButton.addEventListener(
+    "click",
+    async () => {
 
-    updateLocationTime();
+        refreshButton.disabled = true;
+        refreshButton.textContent = "…";
 
-    refreshButton.textContent = "↻";
+        await loadSurfData(true);
 
-    setTimeout(() => {
-        refreshButton.disabled = false;
-    }, 30000);
-});
+        updateLocationTime();
+
+        refreshButton.textContent = "↻";
+
+        setTimeout(() => {
+            refreshButton.disabled = false;
+        }, 30000);
+    }
+);
+
 
 loadSurfData();
 </script>
