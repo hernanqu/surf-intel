@@ -859,6 +859,48 @@ def get_rain_lockout(data):
     }
 
 
+def get_is_daylight(data):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    daily = data.get("weather_daily", {})
+    sunrise_times = daily.get("sunrise", [])
+    sunset_times = daily.get("sunset", [])
+
+    pacific = ZoneInfo("America/Los_Angeles")
+    now = datetime.now(pacific)
+
+    sunrise_dt = None
+    sunset_dt = None
+
+    for sunrise in sunrise_times:
+        try:
+            candidate = datetime.fromisoformat(sunrise)
+            candidate = candidate.replace(tzinfo=pacific)
+        except ValueError:
+            continue
+
+        if candidate.date() == now.date():
+            sunrise_dt = candidate
+            break
+
+    for sunset in sunset_times:
+        try:
+            candidate = datetime.fromisoformat(sunset)
+            candidate = candidate.replace(tzinfo=pacific)
+        except ValueError:
+            continue
+
+        if candidate.date() == now.date():
+            sunset_dt = candidate
+            break
+
+    if sunrise_dt is None or sunset_dt is None:
+        return None
+
+    return 1 if sunrise_dt <= now < sunset_dt else 0
+
+
 def get_sunset_status(data):
     from datetime import datetime
     from zoneinfo import ZoneInfo
@@ -1083,7 +1125,12 @@ def marine():
         "wind_direction_10m"
     )
 
-    current["is_day"] = wind.get("is_day")
+    solar_is_day = get_is_daylight(data)
+
+    if solar_is_day is not None:
+        current["is_day"] = solar_is_day
+    else:
+        current["is_day"] = wind.get("is_day")
 
     assessment = make_assessment(current)
     dawn_patrol = get_next_sunrise(data)
