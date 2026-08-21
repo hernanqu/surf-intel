@@ -535,7 +535,24 @@ def make_assessment(current):
     }
 
 
-def calculate_window(data, current_status):
+def calculate_window(data, current_status, sunset_status=None):
+
+    if current_status != "GO":
+        return None
+
+    daylight_minutes = None
+
+    if sunset_status:
+        daylight_minutes = sunset_status.get(
+            "minutes_remaining"
+        )
+
+    if (
+        daylight_minutes is not None
+        and daylight_minutes < 30
+    ):
+        return None
+
     hourly = data.get("hourly", {})
     wind_hourly = data.get("wind_hourly", {})
 
@@ -577,26 +594,50 @@ def calculate_window(data, current_status):
         wind_i = wind_index[timestamp]
 
         future = {
-            "wave_height": hourly.get("wave_height", [None])[index],
-            "wave_direction": hourly.get("wave_direction", [None])[index],
-            "wave_period": hourly.get("wave_period", [None])[index],
-            "wind_speed_10m": wind_hourly.get("wind_speed_10m", [None])[wind_i],
-            "wind_direction_10m": wind_hourly.get("wind_direction_10m", [None])[wind_i],
-            "is_day": wind_hourly.get("is_day", [None])[wind_i],
+            "wave_height": hourly.get(
+                "wave_height", [None]
+            )[index],
+            "wave_direction": hourly.get(
+                "wave_direction", [None]
+            )[index],
+            "swell_wave_height": hourly.get(
+                "swell_wave_height", [None]
+            )[index],
+            "swell_wave_direction": hourly.get(
+                "swell_wave_direction", [None]
+            )[index],
+            "swell_wave_period": hourly.get(
+                "swell_wave_period", [None]
+            )[index],
+            "wind_speed_10m": wind_hourly.get(
+                "wind_speed_10m", [None]
+            )[wind_i],
+            "wind_direction_10m": wind_hourly.get(
+                "wind_direction_10m", [None]
+            )[wind_i],
+            "is_day": wind_hourly.get(
+                "is_day", [None]
+            )[wind_i],
         }
 
         future_assessment = make_assessment(future)
 
-        if future_assessment.get("status") != current_status:
+        if future_assessment.get("status") != "GO":
             break
 
         hours += 1
+
+    # Sunset always caps the usable session window.
+    if (
+        daylight_minutes is not None
+        and daylight_minutes < 60
+    ):
+        return "<1 HR"
 
     if hours == 0:
         return "<1 HR"
 
     return "~1 HR+"
-
 
 # --------------------------------------------------
 # API
@@ -740,7 +781,7 @@ def get_marine_data():
         "longitude": VENICE["longitude"],
         "current": "wind_speed_10m,wind_direction_10m,is_day",
         "hourly": "wind_speed_10m,wind_direction_10m,is_day,precipitation",
-        "daily": "sunrise",
+        "daily": "sunrise,sunset",
         "timezone": "America/Los_Angeles",
         "past_days": 3,
         "forecast_days": 2,
@@ -818,6 +859,47 @@ def get_rain_lockout(data):
     }
 
 
+def get_sunset_status(data):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    daily = data.get("weather_daily", {})
+    sunset_times = daily.get("sunset", [])
+
+    if not sunset_times:
+        return {
+            "sunset": None,
+            "minutes_remaining": None,
+        }
+
+    pacific = ZoneInfo("America/Los_Angeles")
+    now = datetime.now(pacific)
+
+    for sunset in sunset_times:
+        try:
+            sunset_dt = datetime.fromisoformat(sunset)
+            sunset_dt = sunset_dt.replace(tzinfo=pacific)
+        except ValueError:
+            continue
+
+        if sunset_dt.date() != now.date():
+            continue
+
+        minutes_remaining = max(
+            0,
+            int((sunset_dt - now).total_seconds() // 60)
+        )
+
+        return {
+            "sunset": sunset_dt.strftime("%-I:%M %p"),
+            "minutes_remaining": minutes_remaining,
+        }
+
+    return {
+        "sunset": None,
+        "minutes_remaining": None,
+    }
+
 def get_next_sunrise(data):
     daily = data.get("weather_daily", {})
     sunrise_times = daily.get("sunrise", [])
@@ -882,6 +964,7 @@ def marine():
 
     assessment = make_assessment(current)
     dawn_patrol = get_next_sunrise(data)
+    sunset_status = get_sunset_status(data)
     rain_lockout = get_rain_lockout(data)
 
     if (
@@ -894,9 +977,24 @@ def marine():
             "Safe after: " + rain_lockout["safe_after"] + "."
         )
 
+    if (
+        assessment["status"] != "DANGEROUS"
+        and current.get("is_day") == 1
+        and sunset_status["minutes_remaining"] is not None
+        and sunset_status["minutes_remaining"] < 30
+    ):
+        assessment["status"] = "NO-GO"
+        assessment["reason"] = (
+            "Sunset is too close for a productive session. "
+            "Only "
+            + str(sunset_status["minutes_remaining"])
+            + " minutes of daylight remain."
+        )
+
     window = calculate_window(
         data,
-        assessment.get("status")
+        assessment.get("status"),
+        sunset_status
     )
 
     tide = make_tide_summary(
@@ -912,6 +1010,7 @@ def marine():
         "surfer": SURFER,
         "assessment": assessment,
         "dawn_patrol": dawn_patrol,
+        "sunset": sunset_status,
         "rain_lockout": rain_lockout,
         "window": window,
         "tide": tide,
