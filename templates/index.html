@@ -500,18 +500,6 @@ async function loadSurfData(forceRefresh = false) {
         const statusElement =
             document.getElementById("status");
 
-        const isNight =
-            data.current &&
-            data.current.is_day === 0;
-
-        if (isNight) {
-            statusElement.classList.add("night-muted");
-            locationEl.classList.add("night-muted");
-        } else {
-            statusElement.classList.remove("night-muted");
-            locationEl.classList.remove("night-muted");
-        }
-
         const status =
             assessment.status || "ERROR";
 
@@ -542,6 +530,18 @@ async function loadSurfData(forceRefresh = false) {
 
         } else {
             statusElement.className = "status error";
+        }
+
+        const isNight =
+            data.current &&
+            data.current.is_day === 0;
+
+        if (isNight) {
+            statusElement.classList.add("night-muted");
+            locationEl.classList.add("night-muted");
+        } else {
+            statusElement.classList.remove("night-muted");
+            locationEl.classList.remove("night-muted");
         }
 
 
