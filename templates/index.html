@@ -178,6 +178,10 @@
             opacity: 0.35;
         }
 
+        .night-muted {
+            opacity: 0.35;
+        }
+
         .conditions {
             width: min(440px, 100%);
             margin: 34px auto 0;
@@ -480,6 +484,9 @@ async function loadSurfData(forceRefresh = false) {
         const conditionsEl =
             document.querySelector(".conditions");
 
+        const locationEl =
+            document.getElementById("location");
+
         if (
             conditionsEl &&
             data.current &&
@@ -492,6 +499,18 @@ async function loadSurfData(forceRefresh = false) {
 
         const statusElement =
             document.getElementById("status");
+
+        const isNight =
+            data.current &&
+            data.current.is_day === 0;
+
+        if (isNight) {
+            statusElement.classList.add("night-muted");
+            locationEl.classList.add("night-muted");
+        } else {
+            statusElement.classList.remove("night-muted");
+            locationEl.classList.remove("night-muted");
+        }
 
         const status =
             assessment.status || "ERROR";
@@ -558,9 +577,9 @@ async function loadSurfData(forceRefresh = false) {
             assessment.reason ===
                 "It's dark. Check back after dawn." &&
             data.dawn_forecast
-                ? "SURF INTEL: It's dark. Dawn patrol " +
+                ? "DAWN PATROL: " +
                   data.dawn_forecast.time +
-                  ": " +
+                  " · " +
                   data.dawn_forecast.outlook +
                   " · " +
                   data.dawn_forecast.assessment.wave_height_range +
