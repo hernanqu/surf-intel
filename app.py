@@ -740,7 +740,7 @@ def make_tide_summary(predictions):
         direction = "↓"
         trend = "FALLING"
     else:
-        direction = "→"
+        direction = "~"
         trend = "SLACK"
 
     return {
@@ -926,6 +926,129 @@ def get_next_sunrise(data):
     return None
 
 
+def get_dawn_patrol_forecast(data):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    pacific = ZoneInfo("America/Los_Angeles")
+    now = datetime.now(pacific)
+
+    daily = data.get("weather_daily", {})
+    sunrise_times = daily.get("sunrise", [])
+    marine_hourly = data.get("hourly", {})
+    wind_hourly = data.get("wind_hourly", {})
+
+    marine_times = marine_hourly.get("time", [])
+    wind_times = wind_hourly.get("time", [])
+
+    if not sunrise_times or not marine_times:
+        return None
+
+    sunrise_dt = None
+
+    for sunrise in sunrise_times:
+        try:
+            candidate = datetime.fromisoformat(sunrise)
+            candidate = candidate.replace(tzinfo=pacific)
+        except ValueError:
+            continue
+
+        if candidate > now:
+            sunrise_dt = candidate
+            break
+
+    if sunrise_dt is None:
+        return None
+
+    marine_index = min(
+        range(len(marine_times)),
+        key=lambda i: abs(
+            (
+                datetime.fromisoformat(marine_times[i]).replace(
+                    tzinfo=pacific
+                )
+                - sunrise_dt
+            ).total_seconds()
+        )
+    )
+
+    wind_index = None
+
+    if wind_times:
+        wind_index = min(
+            range(len(wind_times)),
+            key=lambda i: abs(
+                (
+                    datetime.fromisoformat(wind_times[i]).replace(
+                        tzinfo=pacific
+                    )
+                    - sunrise_dt
+                ).total_seconds()
+            )
+        )
+
+    forecast = {}
+
+    marine_fields = [
+        "wave_height",
+        "wave_direction",
+        "wave_period",
+        "wave_peak_period",
+        "wind_wave_height",
+        "wind_wave_direction",
+        "wind_wave_period",
+        "swell_wave_height",
+        "swell_wave_direction",
+        "swell_wave_period",
+        "secondary_swell_wave_height",
+        "secondary_swell_wave_direction",
+        "secondary_swell_wave_period",
+        "tertiary_swell_wave_height",
+        "tertiary_swell_wave_direction",
+        "tertiary_swell_wave_period",
+        "sea_surface_temperature",
+    ]
+
+    for field in marine_fields:
+        values = marine_hourly.get(field, [])
+
+        if marine_index < len(values):
+            forecast[field] = values[marine_index]
+
+    if wind_index is not None:
+        wind_speeds = wind_hourly.get("wind_speed_10m", [])
+        wind_directions = wind_hourly.get(
+            "wind_direction_10m",
+            []
+        )
+
+        if wind_index < len(wind_speeds):
+            forecast["wind_speed_10m"] = wind_speeds[wind_index]
+
+        if wind_index < len(wind_directions):
+            forecast["wind_direction_10m"] = (
+                wind_directions[wind_index]
+            )
+
+    forecast["is_day"] = 1
+
+    assessment = make_assessment(forecast)
+
+    if assessment["status"] == "DANGEROUS":
+        outlook = "DANGEROUS"
+    elif assessment["status"] == "GO":
+        outlook = "LOOKING GOOD"
+    else:
+        outlook = "NOT LOOKING GOOD"
+
+    return {
+        "time": sunrise_dt.strftime("%-I:%M %p"),
+        "outlook": outlook,
+        "assessment": assessment,
+        "forecast": forecast,
+    }
+
+
 @app.route("/")
 def index():
     return render_template(
@@ -964,6 +1087,7 @@ def marine():
 
     assessment = make_assessment(current)
     dawn_patrol = get_next_sunrise(data)
+    dawn_forecast = get_dawn_patrol_forecast(data)
     sunset_status = get_sunset_status(data)
     rain_lockout = get_rain_lockout(data)
 
@@ -1010,6 +1134,7 @@ def marine():
         "surfer": SURFER,
         "assessment": assessment,
         "dawn_patrol": dawn_patrol,
+        "dawn_forecast": dawn_forecast,
         "sunset": sunset_status,
         "rain_lockout": rain_lockout,
         "window": window,

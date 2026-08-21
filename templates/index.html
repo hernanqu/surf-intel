@@ -174,6 +174,10 @@
             text-transform: uppercase;
         }
 
+        .conditions.night {
+            opacity: 0.35;
+        }
+
         .conditions {
             width: min(440px, 100%);
             margin: 34px auto 0;
@@ -476,6 +480,19 @@ async function loadSurfData(forceRefresh = false) {
         const data = await response.json();
         const assessment = data.assessment;
 
+        const conditionsEl =
+            document.querySelector(".conditions");
+
+        if (
+            conditionsEl &&
+            data.current &&
+            data.current.is_day === 0
+        ) {
+            conditionsEl.classList.add("night");
+        } else if (conditionsEl) {
+            conditionsEl.classList.remove("night");
+        }
+
         const statusElement =
             document.getElementById("status");
 
@@ -543,12 +560,26 @@ async function loadSurfData(forceRefresh = false) {
             status === "NO-GO" &&
             assessment.reason ===
                 "It's dark. Check back after dawn." &&
-            data.dawn_patrol
-                ? "It's dark. Dawn patrol: " +
-                  data.dawn_patrol +
+            data.dawn_forecast
+                ? "It's dark. Dawn patrol " +
+                  data.dawn_forecast.time +
+                  ": " +
+                  data.dawn_forecast.outlook +
+                  " · " +
+                  data.dawn_forecast.assessment.wave_height_range +
+                  " · " +
+                  data.dawn_forecast.assessment.wind_label +
+                  " " +
+                  data.dawn_forecast.assessment.wind_speed_kt +
+                  " KT " +
+                  data.dawn_forecast.assessment.wind_compass +
                   "."
-                : assessment.reason ||
-                  "Conditions unavailable.";
+                : data.dawn_patrol
+                  ? "It's dark. Dawn patrol: " +
+                    data.dawn_patrol +
+                    "."
+                  : assessment.reason ||
+                    "Conditions unavailable.";
 
 
         document.getElementById("waveHeight").textContent =
