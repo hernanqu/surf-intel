@@ -367,7 +367,7 @@
                 Checking conditions...
             </div>
 
-            <div class="conditions">
+            <div id="conditions" class="conditions">
 
                 <div class="condition">
                     <div class="condition-label">
@@ -519,8 +519,11 @@ async function loadSurfData(forceRefresh = false) {
             statusElement.className = "status no-go";
             document.body.classList.add("status-no-go");
         } else if (status === "NAH") {
-            statusElement.className = "status dangerous";
-            document.body.classList.add("status-dangerous");
+            statusElement.className = "status no-go";
+            document.body.classList.add("status-no-go");
+        } else if (status === "ZZZ") {
+            statusElement.className = "status no-go";
+            document.body.classList.add("status-no-go");
         } else {
             statusElement.className = "status error";
         }
@@ -530,11 +533,13 @@ async function loadSurfData(forceRefresh = false) {
             data.current.is_day === 0;
 
         if (isNight) {
-            statusElement.classList.add("night-muted");
-            locationEl.classList.add("night-muted");
+            statusElement.classList.remove("night-muted");
+            locationEl.classList.remove("night-muted");
+            conditionsEl.style.display = "none";
         } else {
             statusElement.classList.remove("night-muted");
             locationEl.classList.remove("night-muted");
+            conditionsEl.style.display = "";
         }
 
 
@@ -700,21 +705,17 @@ const refreshButton =
 refreshButton.addEventListener(
     "click",
     async () => {
-
         refreshButton.disabled = true;
         refreshButton.textContent = "…";
 
-        await loadSurfData(true);
-
-        updateLocationTime();
-
-        refreshButton.textContent = "↻";
-
-        setTimeout(() => {
-            refreshButton.disabled = false;
-        }, 30000);
+        try {
+            await fetch("/api/marine?refresh=1");
+        } finally {
+            window.location.reload();
+        }
     }
 );
+
 
 
 loadSurfData();

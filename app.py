@@ -361,7 +361,7 @@ def make_assessment(current):
         status = "NAH"
 
     elif is_day == 0:
-        status = "NAH"
+        status = "ZZZ"
 
     elif wind_speed_kt is not None and wind_speed_kt >= 16:
         status = "NAH"
@@ -1059,11 +1059,11 @@ def get_dawn_patrol_forecast(data):
     assessment = make_assessment(forecast)
 
     if assessment["status"] == "NAH":
-        outlook = "NAH"
+        outlook = "LOOKING HEAVY"
     elif assessment["status"] == "YEW!":
-        outlook = "YEW!"
+        outlook = "LOOKING GOOD"
     else:
-        outlook = "MID"
+        outlook = "LOOKING MID"
 
     return {
         "time": sunrise_dt.strftime("%-I:%M %p"),
