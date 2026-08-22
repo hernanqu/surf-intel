@@ -581,11 +581,11 @@ async function loadSurfData(forceRefresh = false) {
                       data.dawn_forecast.assessment.wind_speed_kt +
                       " KT " +
                       data.dawn_forecast.assessment.wind_compass +
-                      "."
+                      ". Hasta mañana."
                     : data.dawn_patrol
                         ? "It's dark. Dawn patrol: " +
                           data.dawn_patrol +
-                          "."
+                          ". Hasta mañana."
                         : assessment.reason
                 : assessment.reason ||
                   "Conditions unavailable.";

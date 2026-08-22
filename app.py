@@ -619,7 +619,7 @@ def calculate_window(data, current_status, sunset_status=None):
     if hours == 0:
         return "<1 HR"
 
-    return "~1 HR+"
+    return "1 HR+"
 
 # --------------------------------------------------
 # API
