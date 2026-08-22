@@ -333,13 +333,16 @@ def make_assessment(current):
     # Apply directional wind influence
     score = max(0, min(100, score - wind_penalty))
 
-    # Hard safety limits
+    # Decision states:
+    # YEW! = good surf
+    # MID  = surfable, but compromised
+    # NAH  = outside current comfort/safety envelope
 
     if wind_speed_kt is not None and wind_speed_kt >= 22:
-        status = "DANGEROUS"
+        status = "NAH"
 
     elif wave_height_ft is not None and wave_height_ft >= 7:
-        status = "DANGEROUS"
+        status = "NAH"
 
     elif (
         wave_height_ft is not None
@@ -347,7 +350,7 @@ def make_assessment(current):
         and wave_height_ft >= 4
         and wave_period_s >= 16
     ):
-        status = "DANGEROUS"
+        status = "NAH"
 
     elif (
         wave_height_ft is not None
@@ -355,115 +358,89 @@ def make_assessment(current):
         and wave_height_ft >= 3
         and wave_period_s >= 18
     ):
-        status = "DANGEROUS"
+        status = "NAH"
 
     elif is_day == 0:
-        status = "NO-GO"
+        status = "NAH"
 
     elif wind_speed_kt is not None and wind_speed_kt >= 16:
-        status = "NO-GO"
-
-    elif (
-        wave_height_ft is not None
-        and wave_period_s is not None
-        and wave_height_ft >= 2
-        and wave_period_s >= 16
-    ):
-        status = "NO-GO"
-
-    elif (
-        wave_height_ft is not None
-        and wave_period_s is not None
-        and wave_height_ft >= 3
-        and wave_period_s >= 14
-    ):
-        status = "NO-GO"
-
-    elif wave_height_ft is not None and wave_height_ft >= 6:
-        status = "NO-GO"
+        status = "NAH"
 
     elif wave_height_ft is not None and wave_height_ft >= 5:
-        status = "NO-GO"
-
-    elif wave_height_ft is not None and wave_height_ft < 2:
-        status = "NO-GO"
+        status = "NAH"
 
     elif score >= 75:
-        status = "GO"
+        status = "YEW!"
 
     else:
-        status = "NO-GO"
+        status = "MID"
 
     # Explanation
-    if status == "DANGEROUS":
+
+    if is_day == 0:
+        reason = "It's dark. Check back after dawn."
+
+    elif status == "NAH":
         if wind_speed_kt is not None and wind_speed_kt >= 22:
             reason = (
                 "Wind conditions are severe enough to make the session unsafe."
             )
+
         elif wave_height_ft is not None and wave_height_ft >= 7:
             reason = (
                 "Surf size has crossed into a dangerous range."
             )
-        else:
-            reason = (
-                "Long-period swell is creating dangerous surf energy "
-                "for the current wave height."
-            )
 
-    elif is_day == 0:
-        reason = "It's dark. Check back after dawn."
-
-    elif status == "NO-GO":
-        reason_candidates = []
-
-        if wind_speed_kt is not None and wind_speed_kt >= 16:
-            reason_candidates.append((
-                100,
-                "Wind is too strong and is degrading the surface conditions."
-            ))
-
-        if (
+        elif (
             wave_height_ft is not None
             and wave_period_s is not None
             and (
-                (wave_height_ft >= 2 and wave_period_s >= 16)
-                or (wave_height_ft >= 3 and wave_period_s >= 14)
+                (wave_height_ft >= 4 and wave_period_s >= 16)
+                or (wave_height_ft >= 3 and wave_period_s >= 18)
             )
         ):
-            reason_candidates.append((
-                90,
-                "Long-period swell is making the surf more powerful "
-                "than the wave height suggests."
-            ))
+            reason = (
+                "Long-period swell is creating more power "
+                "than is comfortable for this session."
+            )
 
-        if wave_height_ft is not None and wave_height_ft >= 5:
-            reason_candidates.append((
-                95,
-                "Wave size is outside the preferred range. "
-                "The surf is too powerful for a productive session."
-            ))
+        elif wave_height_ft is not None and wave_height_ft >= 5:
+            reason = (
+                "Wave size is outside your current comfort range."
+            )
+
+        elif wind_speed_kt is not None and wind_speed_kt >= 16:
+            reason = (
+                "Strong wind is making conditions too rough "
+                "for a worthwhile session."
+            )
+
+        else:
+            reason = (
+                "Conditions are outside your current comfort range."
+            )
+
+    elif status == "MID":
+        reason_candidates = []
 
         if wave_height_ft is not None and wave_height_ft < 2:
             reason_candidates.append((
                 75,
-                "The surf is too small and lacks enough energy "
-                "for a productive session."
+                "The surf is small and lacks much push."
             ))
 
         if wave_period_s is not None and wave_period_s < 8:
             reason_candidates.append((
                 65,
-                "The short period is limiting wave energy "
-                "and consistency."
+                "The short period is limiting wave energy and consistency."
             ))
 
         if wind_quality == "ONSHORE":
             onshore_severity = (
-                70 if wind_speed_kt is not None and wind_speed_kt >= 10
-                else 60 if wind_speed_kt is not None and wind_speed_kt >= 7
-                else 45
+                80 if wind_speed_kt is not None and wind_speed_kt >= 10
+                else 70 if wind_speed_kt is not None and wind_speed_kt >= 7
+                else 50
             )
-
             reason_candidates.append((
                 onshore_severity,
                 "Onshore wind is degrading the surface conditions."
@@ -476,28 +453,33 @@ def make_assessment(current):
             )[1]
         else:
             reason = (
-                "Conditions are outside the preferred range "
-                "for a productive session."
+                "Conditions are surfable, but wave quality "
+                "isn't fully lining up."
             )
-    elif status == "GO" and wind_quality == "OFFSHORE":
+
+    elif status == "YEW!" and wind_quality == "OFFSHORE":
         reason = (
             "Offshore wind is helping clean up the surface, while wave size "
-            "and energy remain within a workable range."
+            "and energy are lining up well."
         )
-    elif status == "GO" and wind_speed_kt is not None and wind_speed_kt <= 7:
+
+    elif (
+        status == "YEW!"
+        and wind_speed_kt is not None
+        and wind_speed_kt <= 7
+    ):
         reason = (
-            "Clean surface conditions with workable wave size and energy. "
-            "Good conditions for a productive session."
+            "Clean surface conditions with workable wave size and energy."
         )
-    elif status == "GO":
+
+    elif status == "YEW!":
         reason = (
-            "Wave size, energy, and surface conditions are workable. "
-            "Good conditions for a productive session."
+            "Wave size, energy, and surface conditions are lining up well."
         )
+
     else:
         reason = (
-            "Conditions are marginal. Wave size, energy, or surface quality "
-            "is limiting the overall quality of the session."
+            "Conditions are surfable, but not especially good."
         )
 
     return {
@@ -537,7 +519,7 @@ def make_assessment(current):
 
 def calculate_window(data, current_status, sunset_status=None):
 
-    if current_status != "GO":
+    if current_status not in ("YEW!", "MID"):
         return None
 
     daylight_minutes = None
@@ -622,7 +604,7 @@ def calculate_window(data, current_status, sunset_status=None):
 
         future_assessment = make_assessment(future)
 
-        if future_assessment.get("status") != "GO":
+        if future_assessment.get("status") not in ("YEW!", "MID"):
             break
 
         hours += 1
@@ -1076,12 +1058,12 @@ def get_dawn_patrol_forecast(data):
 
     assessment = make_assessment(forecast)
 
-    if assessment["status"] == "DANGEROUS":
-        outlook = "DANGEROUS"
-    elif assessment["status"] == "GO":
-        outlook = "LOOKING GOOD"
+    if assessment["status"] == "NAH":
+        outlook = "NAH"
+    elif assessment["status"] == "YEW!":
+        outlook = "YEW!"
     else:
-        outlook = "NOT LOOKING GOOD"
+        outlook = "MID"
 
     return {
         "time": sunrise_dt.strftime("%-I:%M %p"),
@@ -1140,24 +1122,23 @@ def marine():
 
     if (
         rain_lockout["active"]
-        and assessment["status"] != "DANGEROUS"
+        and assessment["status"] != "NAH"
     ):
-        assessment["status"] = "NO-GO"
+        assessment["status"] = "NAH"
         assessment["reason"] = (
             "Recent rain. Water quality risk. "
             "Safe after: " + rain_lockout["safe_after"] + "."
         )
 
     if (
-        assessment["status"] != "DANGEROUS"
+        assessment["status"] != "NAH"
         and current.get("is_day") == 1
         and sunset_status["minutes_remaining"] is not None
         and sunset_status["minutes_remaining"] < 30
     ):
-        assessment["status"] = "NO-GO"
+        assessment["status"] = "MID"
         assessment["reason"] = (
-            "Sunset is too close for a productive session. "
-            "Only "
+            "Sunset is close. Only "
             + str(sunset_status["minutes_remaining"])
             + " minutes of daylight remain."
         )

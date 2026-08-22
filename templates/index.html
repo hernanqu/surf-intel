@@ -512,22 +512,15 @@ async function loadSurfData(forceRefresh = false) {
             "status-dangerous"
         );
 
-        if (status === "GO") {
-            statusElement.className = "status go";
-            document.body.classList.add("status-go");
-
-        } else if (status === "NO-GO") {
-            statusElement.className = "status no-go";
-            document.body.classList.add("status-no-go");
-
-        } else if (status === "YEWWW") {
+        if (status === "YEW!") {
             statusElement.className = "status yewww";
             document.body.classList.add("status-yewww");
-
-        } else if (status === "DANGEROUS") {
+        } else if (status === "MID") {
+            statusElement.className = "status no-go";
+            document.body.classList.add("status-no-go");
+        } else if (status === "NAH") {
             statusElement.className = "status dangerous";
             document.body.classList.add("status-dangerous");
-
         } else {
             statusElement.className = "status error";
         }
@@ -549,7 +542,7 @@ async function loadSurfData(forceRefresh = false) {
             document.getElementById("window");
 
         if (
-            (status === "GO" || status === "YEWWW") &&
+            (status === "YEW!" || status === "MID") &&
             data.window
         ) {
             windowEl.textContent =
