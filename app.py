@@ -466,6 +466,9 @@ def make_assessment(current, spot=VENICE):
     elif wave_height_ft is not None and wave_height_ft >= 5:
         status = "NAH"
 
+    elif wind_speed_kt is None or wind_direction is None:
+        status = "MID"
+
     elif score >= 75:
         status = "YEW!"
 
@@ -518,21 +521,36 @@ def make_assessment(current, spot=VENICE):
             )
 
     elif status == "MID":
-        reason_candidates = []
+        if wind_speed_kt is None or wind_direction is None:
+            reason = "Wind data is currently unavailable."
+            reason_candidates = None
+        else:
+            reason_candidates = []
 
-        if wave_height_ft is not None and wave_height_ft < 2:
+        if (
+            reason_candidates is not None
+            and wave_height_ft is not None
+            and wave_height_ft < 2
+        ):
             reason_candidates.append((
                 75,
                 "The surf is small and lacks much push."
             ))
 
-        if wave_period_s is not None and wave_period_s < 8:
+        if (
+            reason_candidates is not None
+            and wave_period_s is not None
+            and wave_period_s < 8
+        ):
             reason_candidates.append((
                 65,
                 "The short period is limiting wave energy and consistency."
             ))
 
-        if wind_quality == "ONSHORE":
+        if (
+            reason_candidates is not None
+            and wind_quality == "ONSHORE"
+        ):
             onshore_severity = (
                 80 if wind_speed_kt is not None and wind_speed_kt >= 10
                 else 70 if wind_speed_kt is not None and wind_speed_kt >= 7
@@ -548,7 +566,7 @@ def make_assessment(current, spot=VENICE):
                 reason_candidates,
                 key=lambda item: item[0]
             )[1]
-        else:
+        elif reason_candidates is not None:
             reason = (
                 "Conditions are surfable, but wave quality "
                 "isn't fully lining up."
@@ -904,7 +922,12 @@ def get_marine_data(spot_key="venice"):
         marine_data["wind"] = weather_data.get("current", {})
         marine_data["wind_hourly"] = weather_data.get("hourly", {})
         marine_data["weather_daily"] = weather_data.get("daily", {})
-    except requests.RequestException:
+    except requests.RequestException as exc:
+        print(
+            "Open-Meteo weather request failed:",
+            repr(exc),
+            flush=True
+        )
         marine_data["wind"] = {}
         marine_data["wind_hourly"] = {}
         marine_data["weather_daily"] = {}
