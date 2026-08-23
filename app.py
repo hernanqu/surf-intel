@@ -31,6 +31,7 @@ SURFER = {
     "volume_liters": 52,
     "level": "beginner / progressing intermediate",
     "objective": "skill progression",
+    "local_spot": "venice_south",
 }
 
 # --------------------------------------------------
@@ -1200,7 +1201,7 @@ def get_dawn_patrol_forecast(data, spot=VENICE):
 def index():
     return render_template(
         "index.html",
-        spot=VENICE,
+        spot=SPOTS[SURFER["local_spot"]],
         surfer=SURFER
     )
 

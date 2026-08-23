@@ -32,7 +32,7 @@
         }
 
         body.status-yewww {
-            --accent: #3f8cff;
+            --accent: #874cff;
         }
 
         body.status-dangerous {
@@ -326,6 +326,161 @@
                 margin-top: 26px;
             }
         }
+    
+        /* --------------------------------------------------
+           MULTI-SPOT FRONT PAGE
+        -------------------------------------------------- */
+
+        .spot-list {
+            width: min(560px, 100%);
+            margin: 0 auto;
+        }
+
+        .spot-panel {
+            border-top: 1px solid var(--divider);
+        }
+
+        .spot-panel:last-child {
+            border-bottom: 1px solid var(--divider);
+        }
+
+        .spot-summary {
+            width: 100%;
+            min-height: 62px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+
+            text-align: left;
+            font: inherit;
+        }
+
+        .spot-summary-name {
+            min-width: 0;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .spot-summary-status {
+            flex: 0 0 auto;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .spot-summary-status.mid,
+        .spot-summary-status.nah,
+        .spot-summary-status.zzz {
+            opacity: 0.55;
+        }
+
+        .local-label {
+            margin-left: 7px;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            opacity: 0.35;
+        }
+
+        .spot-details {
+            padding: 10px 0 34px;
+        }
+
+        .spot-details[hidden] {
+            display: none;
+        }
+
+        .spot-panel .status {
+            margin-top: 8px;
+        }
+
+        .spot-panel .location {
+            display: none;
+        }
+
+        .spot-panel .refresh-button {
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 600px) {
+            .spot-summary {
+                min-height: 58px;
+            }
+
+            .spot-summary-name,
+            .spot-summary-status {
+                font-size: 11px;
+            }
+        }
+
+    
+        .page-timestamp {
+            margin: 8px auto 28px;
+
+
+            font-size: clamp(64px, 11vw, 110px);
+            line-height: 0.85;
+            font-weight: 700;
+            letter-spacing: -0.06em;
+
+            text-align: center;
+            color: #874cff;
+        }
+
+        .refresh-all {
+            position: fixed;
+            right: 22px;
+            bottom: 20px;
+            z-index: 10;
+
+            min-height: 44px;
+            padding: 0 4px;
+
+            border: 0;
+            background: transparent;
+            color: var(--muted);
+
+            font: inherit;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+
+            cursor: pointer;
+        }
+
+        .refresh-all:disabled {
+            opacity: 0.35;
+            cursor: default;
+        }
+
+        .spot-panel.status-yewww {
+            --accent: #874cff;
+        }
+
+        .spot-panel.status-mid {
+            --accent: #4c8dff;
+        }
+
+        .spot-panel.status-nah {
+            --accent: #ff2b2b;
+        }
+
+        .spot-panel.status-zzz {
+            --accent: #666666;
+        }
+
     </style>
 </head>
 
@@ -335,473 +490,602 @@
     <header class="header"></header>
 
     <main class="main">
+
         <section class="intel">
 
             <div
-                id="status"
-                class="status loading"
+                id="pageTimestamp"
+                class="page-timestamp"
             >
-                ...
+                --
             </div>
 
-            <div
-                id="window"
-                class="window"
-            >
-                WINDOW: --
-            </div>
+            <div class="spot-list">
 
-            <div
-                id="location"
-                class="location"
-                data-spot="{{ spot.name }}"
-            >
-                <span id="locationName">
-                    {{ spot.name }}
-                </span>
-
-                <span
-                    id="locationTime"
-                    class="location-time"
-                >
-                </span>
-            </div>
-
-            <div
-                id="reason"
-                class="reason"
-            >
-                Checking conditions...
-            </div>
-
-            <div id="conditions" class="conditions">
-
-                <div class="condition">
-                    <div class="condition-label">
-                        WAVES
-                    </div>
-
-                    <div
-                        id="waveHeight"
-                        class="condition-value"
-                    >
-                        --
-                    </div>
-                </div>
-
-                <div class="condition">
-                    <div class="condition-label">
-                        PERIOD
-                    </div>
-
-                    <div
-                        id="wavePeriod"
-                        class="condition-value"
-                    >
-                        --
-                    </div>
-                </div>
-
-                <div class="condition">
-                    <div class="condition-label">
-                        DIRECTION
-                    </div>
-
-                    <div
-                        id="waveDirection"
-                        class="condition-value"
-                    >
-                        --
-                    </div>
-                </div>
-
-                <div class="condition">
-                    <div class="condition-label">
-                        WIND
-                    </div>
-
-                    <div class="condition-value">
-                        <span id="windCondition">--</span>
-                        <span id="windDetails">--</span>
-                    </div>
-                </div>
-
-                <div class="condition">
-                    <div class="condition-label">
-                        TIDE
-                    </div>
-
-                    <div
-                        id="tide"
-                        class="condition-value"
-                    >
-                        --
-                    </div>
-                </div>
-
-                <div class="condition">
-                    <div class="condition-label">
-                        WATER
-                    </div>
-
-                    <div
-                        id="waterTemp"
-                        class="condition-value"
-                    >
-                        --
-                    </div>
-                </div>
-
-            </div>
-
-            <button
-                id="refreshButton"
-                class="refresh-button"
-                type="button"
-                aria-label="Refresh conditions"
-                title="Refresh conditions"
-            >
-                ↻
-            </button>
-
-            <div class="spot-selector">
-                <button
-                    type="button"
-                    class="spot-option active"
-                    data-spot-key="venice"
-                >
-                    BREAKWATER, VENICE
-                </button>
-                <span>·</span>
-                <button
-                    type="button"
-                    class="spot-option"
+                <article
+                    class="spot-panel"
                     data-spot-key="venice_south"
+                    data-display-name="SOUTH, VENICE"
                 >
-                    SOUTH, VENICE
-                </button>
-                <span>·</span>
-                <button
-                    type="button"
-                    class="spot-option"
+                    <button
+                        class="spot-summary"
+                        type="button"
+                        aria-expanded="false"
+                    >
+                        <span class="spot-summary-name">
+                            SOUTH, VENICE
+                            <span class="local-label">LOCAL</span>
+                        </span>
+
+                        <span class="spot-summary-status">
+                            ...
+                        </span>
+                    </button>
+
+                    <div class="spot-details" hidden>
+                        <div class="status loading">...</div>
+
+                        <div class="window">
+                            WINDOW: --
+                        </div>
+
+                        <div class="location">
+                            <span class="location-name">
+                                SOUTH, VENICE
+                            </span>
+                            <span class="location-time"></span>
+                        </div>
+
+                        <div class="reason">
+                            Checking conditions...
+                        </div>
+
+                        <div class="conditions">
+
+                            <div class="condition">
+                                <div class="condition-label">WAVES</div>
+                                <div class="condition-value wave-height">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">PERIOD</div>
+                                <div class="condition-value wave-period">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">DIRECTION</div>
+                                <div class="condition-value wave-direction">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">WIND</div>
+                                <div class="condition-value">
+                                    <span class="wind-condition">--</span>
+                                    <span class="wind-details">--</span>
+                                </div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">TIDE</div>
+                                <div class="condition-value tide">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">WATER</div>
+                                <div class="condition-value water-temp">--</div>
+                            </div>
+
+                        </div>
+                    </div>
+                </article>
+
+
+                <article
+                    class="spot-panel"
+                    data-spot-key="venice"
+                    data-display-name="BREAKWATER, VENICE"
+                >
+                    <button
+                        class="spot-summary"
+                        type="button"
+                        aria-expanded="false"
+                    >
+                        <span class="spot-summary-name">
+                            BREAKWATER, VENICE
+                        </span>
+
+                        <span class="spot-summary-status">
+                            ...
+                        </span>
+                    </button>
+
+                    <div class="spot-details" hidden>
+                        <div class="status loading">...</div>
+
+                        <div class="window">
+                            WINDOW: --
+                        </div>
+
+                        <div class="location">
+                            <span class="location-name">
+                                BREAKWATER, VENICE
+                            </span>
+                            <span class="location-time"></span>
+                        </div>
+
+                        <div class="reason">
+                            Checking conditions...
+                        </div>
+
+                        <div class="conditions">
+
+                            <div class="condition">
+                                <div class="condition-label">WAVES</div>
+                                <div class="condition-value wave-height">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">PERIOD</div>
+                                <div class="condition-value wave-period">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">DIRECTION</div>
+                                <div class="condition-value wave-direction">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">WIND</div>
+                                <div class="condition-value">
+                                    <span class="wind-condition">--</span>
+                                    <span class="wind-details">--</span>
+                                </div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">TIDE</div>
+                                <div class="condition-value tide">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">WATER</div>
+                                <div class="condition-value water-temp">--</div>
+                            </div>
+
+                        </div>
+                    </div>
+                </article>
+
+
+                <article
+                    class="spot-panel"
                     data-spot-key="broad"
+                    data-display-name="BROAD, MALIBU"
                 >
-                    BROAD, MALIBU
-                </button>
+                    <button
+                        class="spot-summary"
+                        type="button"
+                        aria-expanded="false"
+                    >
+                        <span class="spot-summary-name">
+                            BROAD, MALIBU
+                        </span>
+
+                        <span class="spot-summary-status">
+                            ...
+                        </span>
+                    </button>
+
+                    <div class="spot-details" hidden>
+                        <div class="status loading">...</div>
+
+                        <div class="window">
+                            WINDOW: --
+                        </div>
+
+                        <div class="location">
+                            <span class="location-name">
+                                BROAD, MALIBU
+                            </span>
+                            <span class="location-time"></span>
+                        </div>
+
+                        <div class="reason">
+                            Checking conditions...
+                        </div>
+
+                        <div class="conditions">
+
+                            <div class="condition">
+                                <div class="condition-label">WAVES</div>
+                                <div class="condition-value wave-height">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">PERIOD</div>
+                                <div class="condition-value wave-period">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">DIRECTION</div>
+                                <div class="condition-value wave-direction">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">WIND</div>
+                                <div class="condition-value">
+                                    <span class="wind-condition">--</span>
+                                    <span class="wind-details">--</span>
+                                </div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">TIDE</div>
+                                <div class="condition-value tide">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">WATER</div>
+                                <div class="condition-value water-temp">--</div>
+                            </div>
+
+                        </div>
+                    </div>
+                </article>
+
             </div>
 
         </section>
+
     </main>
+
+    <button
+        id="refreshAllButton"
+        class="refresh-all"
+        type="button"
+    >
+        REFRESH
+    </button>
 
 </div>
 
 <script>
 
-const urlParams = new URLSearchParams(window.location.search);
+const panels =
+    Array.from(document.querySelectorAll(".spot-panel"));
 
-let activeSpot = urlParams.get("spot") || "venice";
 
-if (!["venice", "venice_south", "broad"].includes(activeSpot)) {
-    activeSpot = "venice";
+function formatCurrentTime() {
+
+    return new Intl.DateTimeFormat(
+        "en-US",
+        {
+            timeZone: "America/Los_Angeles",
+            hour: "numeric",
+            minute: "2-digit"
+        }
+    ).format(new Date());
 }
 
-async function loadSurfData(forceRefresh = false) {
 
-    try {
-        const params = new URLSearchParams({
-            spot: activeSpot
-        });
+function updateTimes() {
 
-        if (forceRefresh) {
-            params.set("refresh", "1");
+    const time = formatCurrentTime();
+
+    const pageTimestamp =
+        document.getElementById("pageTimestamp");
+
+    if (pageTimestamp) {
+        pageTimestamp.textContent = time;
+    }
+
+    panels.forEach(panel => {
+
+        const timeElement =
+            panel.querySelector(".location-time");
+
+        if (timeElement) {
+            timeElement.textContent = " " + time;
         }
 
-        const endpoint = "/api/marine?" + params.toString();
+    });
+}
 
-        const response = await fetch(endpoint);
+
+function dawnReason(data, assessment) {
+
+    if (
+        assessment.reason !==
+        "It's dark. Check back after dawn."
+    ) {
+        return assessment.reason ||
+            "Conditions unavailable.";
+    }
+
+    if (data.dawn_forecast) {
+
+        const dawn = data.dawn_forecast;
+
+        return (
+            "DAWN PATROL: " +
+            dawn.time +
+            " · " +
+            dawn.outlook +
+            " · " +
+            dawn.assessment.wave_height_range +
+            " · " +
+            dawn.assessment.wave_period_s +
+            " SEC · " +
+            dawn.assessment.wind_label +
+            " " +
+            dawn.assessment.wind_speed_kt +
+            " KT " +
+            dawn.assessment.wind_compass +
+            ". Hasta mañana."
+        );
+    }
+
+    if (data.dawn_patrol) {
+        return (
+            "It's dark. Dawn patrol: " +
+            data.dawn_patrol +
+            ". Hasta mañana."
+        );
+    }
+
+    return assessment.reason;
+}
+
+
+function renderSpot(panel, data) {
+
+    const assessment = data.assessment || {};
+    const status = assessment.status || "ERROR";
+
+    panel.classList.remove(
+        "status-yewww",
+        "status-mid",
+        "status-nah",
+        "status-zzz"
+    );
+
+    if (status === "YEW!") {
+        panel.classList.add("status-yewww");
+    } else if (status === "MID") {
+        panel.classList.add("status-mid");
+    } else if (status === "NAH") {
+        panel.classList.add("status-nah");
+    } else if (status === "ZZZ") {
+        panel.classList.add("status-zzz");
+    }
+
+    const summaryStatus =
+        panel.querySelector(".spot-summary-status");
+
+    const statusElement =
+        panel.querySelector(".status");
+
+    const conditionsElement =
+        panel.querySelector(".conditions");
+
+    const windowElement =
+        panel.querySelector(".window");
+
+    summaryStatus.textContent = status;
+    summaryStatus.className =
+        "spot-summary-status " +
+        status.toLowerCase().replace("!", "");
+
+    statusElement.textContent = status;
+
+    if (status === "YEW!") {
+        statusElement.className = "status yewww";
+    } else if (
+        status === "MID" ||
+        status === "NAH" ||
+        status === "ZZZ"
+    ) {
+        statusElement.className = "status no-go";
+    } else {
+        statusElement.className = "status error";
+    }
+
+
+    const isNight =
+        data.current &&
+        data.current.is_day === 0;
+
+    if (isNight) {
+        conditionsElement.classList.add("night");
+        conditionsElement.style.display = "none";
+    } else {
+        conditionsElement.classList.remove("night");
+        conditionsElement.style.display = "";
+    }
+
+
+    if (
+        (status === "YEW!" || status === "MID") &&
+        data.window
+    ) {
+        windowElement.textContent =
+            "WINDOW: " + data.window;
+        windowElement.style.display = "";
+    } else {
+        windowElement.style.display = "none";
+    }
+
+
+    panel.querySelector(".reason").textContent =
+        dawnReason(data, assessment);
+
+
+    panel.querySelector(".wave-height").textContent =
+        assessment.wave_height_range != null
+            ? assessment.wave_height_range
+            : "--";
+
+
+    panel.querySelector(".wave-period").textContent =
+        assessment.swell_period_s != null
+            ? assessment.swell_period_s + " SEC"
+            : "--";
+
+
+    panel.querySelector(".wave-direction").textContent =
+        assessment.swell_direction != null
+            ? assessment.swell_compass +
+              " " +
+              assessment.swell_direction +
+              "°"
+            : "--";
+
+
+    panel.querySelector(".wind-condition").textContent =
+        assessment.wind_label &&
+        assessment.wind_label !== "UNKNOWN"
+            ? assessment.wind_label
+            : "--";
+
+
+    panel.querySelector(".wind-details").textContent =
+        assessment.wind_speed_kt != null
+            ? assessment.wind_speed_kt +
+              " KT " +
+              assessment.wind_compass
+            : "--";
+
+
+    panel.querySelector(".tide").textContent =
+        data.tide &&
+        data.tide.height_ft != null &&
+        data.tide.direction
+            ? data.tide.height_ft +
+              " FT " +
+              data.tide.direction
+            : "--";
+
+
+    panel.querySelector(".water-temp").textContent =
+        data.water_temperature_f != null
+            ? data.water_temperature_f + "°F"
+            : "--";
+}
+
+
+async function loadSpot(panel, forceRefresh = false) {
+
+    const spotKey = panel.dataset.spotKey;
+
+    const params = new URLSearchParams({
+        spot: spotKey
+    });
+
+    if (forceRefresh) {
+        params.set("refresh", "1");
+    }
+
+    try {
+
+        const response = await fetch(
+            "/api/marine?" + params.toString()
+        );
 
         if (!response.ok) {
             throw new Error(
-                "Marine API returned " + response.status
+                "Marine API returned " +
+                response.status +
+                " for " +
+                spotKey
             );
         }
 
         const data = await response.json();
 
-        if (data.spot && data.spot.name) {
-            document.getElementById("location").dataset.spot =
-                data.spot.name;
-            updateLocationTime();
-        }
-        const assessment = data.assessment;
-
-        const conditionsEl =
-            document.querySelector(".conditions");
-
-        const locationEl =
-            document.getElementById("location");
-
-        if (
-            conditionsEl &&
-            data.current &&
-            data.current.is_day === 0
-        ) {
-            conditionsEl.classList.add("night");
-        } else if (conditionsEl) {
-            conditionsEl.classList.remove("night");
-        }
-
-        const statusElement =
-            document.getElementById("status");
-
-        const status =
-            assessment.status || "ERROR";
-
-        statusElement.textContent = status;
-
-        document.body.classList.remove(
-            "status-go",
-            "status-no-go",
-            "status-yewww",
-            "status-dangerous"
-        );
-
-        if (status === "YEW!") {
-            statusElement.className = "status yewww";
-            document.body.classList.add("status-yewww");
-        } else if (status === "MID") {
-            statusElement.className = "status no-go";
-            document.body.classList.add("status-no-go");
-        } else if (status === "NAH") {
-            statusElement.className = "status no-go";
-            document.body.classList.add("status-no-go");
-        } else if (status === "ZZZ") {
-            statusElement.className = "status no-go";
-            document.body.classList.add("status-no-go");
-        } else {
-            statusElement.className = "status error";
-        }
-
-        const isNight =
-            data.current &&
-            data.current.is_day === 0;
-
-        if (isNight) {
-            statusElement.classList.remove("night-muted");
-            locationEl.classList.remove("night-muted");
-            conditionsEl.style.display = "none";
-        } else {
-            statusElement.classList.remove("night-muted");
-            locationEl.classList.remove("night-muted");
-            conditionsEl.style.display = "";
-        }
-
-
-        const windowEl =
-            document.getElementById("window");
-
-        if (
-            (status === "YEW!" || status === "MID") &&
-            data.window
-        ) {
-            windowEl.textContent =
-                "WINDOW: " + data.window;
-
-            windowEl.style.display = "";
-
-        } else {
-            windowEl.style.display = "none";
-        }
-
-
-        document.getElementById("tide").textContent =
-            data.tide &&
-            data.tide.height_ft != null &&
-            data.tide.direction
-                ? data.tide.height_ft +
-                  " FT " +
-                  data.tide.direction
-                : "--";
-
-
-        document.getElementById("reason").textContent =
-            assessment.reason ===
-                "It's dark. Check back after dawn."
-                ? data.dawn_forecast
-                    ? "DAWN PATROL: " +
-                      data.dawn_forecast.time +
-                      " · " +
-                      data.dawn_forecast.outlook +
-                      " · " +
-                      data.dawn_forecast.assessment.wave_height_range +
-                      " · " +
-                      data.dawn_forecast.assessment.wave_period_s +
-                      " SEC · " +
-                      data.dawn_forecast.assessment.wind_label +
-                      " " +
-                      data.dawn_forecast.assessment.wind_speed_kt +
-                      " KT " +
-                      data.dawn_forecast.assessment.wind_compass +
-                      ". Hasta mañana."
-                    : data.dawn_patrol
-                        ? "It's dark. Dawn patrol: " +
-                          data.dawn_patrol +
-                          ". Hasta mañana."
-                        : assessment.reason
-                : assessment.reason ||
-                  "Conditions unavailable.";
-
-
-        document.getElementById("waveHeight").textContent =
-            assessment.wave_height_range != null
-                ? assessment.wave_height_range
-                : "--";
-
-
-        document.getElementById("wavePeriod").textContent =
-            assessment.swell_period_s != null
-                ? assessment.swell_period_s +
-                  " SEC"
-                : "--";
-
-
-        document.getElementById("waveDirection").textContent =
-            assessment.swell_direction != null
-                ? assessment.swell_compass +
-                  " " +
-                  assessment.swell_direction +
-                  "°"
-                : "--";
-
-
-        document.getElementById("windCondition").textContent =
-            assessment.wind_label &&
-            assessment.wind_label !== "UNKNOWN"
-                ? assessment.wind_label
-                : "--";
-
-
-        document.getElementById("windDetails").textContent =
-            assessment.wind_speed_kt != null
-                ? assessment.wind_speed_kt +
-                  " KT " +
-                  assessment.wind_compass
-                : "--";
-
-
-        document.getElementById("waterTemp").textContent =
-            data.water_temperature_f != null
-                ? data.water_temperature_f +
-                  "°F"
-                : "--";
+        renderSpot(panel, data);
 
     } catch (error) {
 
         console.error(error);
 
+        const summaryStatus =
+            panel.querySelector(".spot-summary-status");
+
         const statusElement =
-            document.getElementById("status");
+            panel.querySelector(".status");
+
+        summaryStatus.textContent = "ERROR";
 
         statusElement.textContent = "ERROR";
         statusElement.className = "status error";
 
-        document.getElementById("reason").textContent =
+        panel.querySelector(".reason").textContent =
             "Unable to retrieve current conditions.";
     }
 }
 
 
-function updateLocationTime() {
+panels.forEach(panel => {
 
-    const locationElement =
-        document.getElementById("location");
+    const summary =
+        panel.querySelector(".spot-summary");
 
-    const locationNameElement =
-        document.getElementById("locationName");
+    const details =
+        panel.querySelector(".spot-details");
 
-    const locationTimeElement =
-        document.getElementById("locationTime");
+    summary.addEventListener("click", () => {
 
-    const spotName =
-        locationElement.dataset.spot;
+        const isOpen =
+            summary.getAttribute("aria-expanded") === "true";
 
-    const formatter =
-        new Intl.DateTimeFormat(
-            "en-US",
-            {
-                timeZone: "America/Los_Angeles",
-                hour: "numeric",
-                minute: "2-digit"
-            }
+        summary.setAttribute(
+            "aria-expanded",
+            String(!isOpen)
         );
 
-    const time =
-        formatter.format(new Date());
+        details.hidden = isOpen;
+    });
 
-    locationNameElement.textContent =
-        spotName.toUpperCase();
-
-    locationTimeElement.textContent =
-        " " + time;
-}
+});
 
 
-updateLocationTime();
+updateTimes();
 
 setInterval(
-    updateLocationTime,
+    updateTimes,
     60000
 );
 
 
-const refreshButton =
-    document.getElementById("refreshButton");
+const refreshAllButton =
+    document.getElementById("refreshAllButton");
 
-
-refreshButton.addEventListener(
+refreshAllButton.addEventListener(
     "click",
     async () => {
-        refreshButton.disabled = true;
-        refreshButton.textContent = "…";
+
+        refreshAllButton.disabled = true;
+        refreshAllButton.textContent = "REFRESHING";
 
         try {
-            await fetch(
-                "/api/marine?spot=" +
-                encodeURIComponent(activeSpot) +
-                "&refresh=1"
+            await Promise.all(
+                panels.map(
+                    panel => loadSpot(panel, true)
+                )
             );
         } finally {
-            window.location.reload();
+            refreshAllButton.disabled = false;
+            refreshAllButton.textContent = "REFRESH";
         }
     }
 );
 
 
+// Load every spot concurrently.
+Promise.all(
+    panels.map(panel => loadSpot(panel))
+);
 
-document.querySelectorAll(".spot-option").forEach(button => {
-    const spotKey = button.dataset.spotKey;
-
-    button.classList.toggle(
-        "active",
-        spotKey === activeSpot
-    );
-
-    button.addEventListener("click", () => {
-        if (spotKey === activeSpot) {
-            return;
-        }
-
-        const params = new URLSearchParams(
-            window.location.search
-        );
-
-        params.set("spot", spotKey);
-
-        window.location.search = params.toString();
-    });
-});
-
-loadSurfData();
 </script>
 
 </body>
