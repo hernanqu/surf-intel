@@ -608,6 +608,31 @@
             }
         }
 
+    
+        .page-header {
+            margin-bottom: 34px;
+            text-align: center;
+        }
+
+        .page-header .page-meta {
+            margin-bottom: 7px;
+        }
+
+        .surf-message {
+            font-size: 10px;
+            font-weight: 600;
+            line-height: 1.4;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        @media (max-width: 700px) {
+            .surf-message {
+                font-size: 11px;
+            }
+        }
+
     </style>
 </head>
 
@@ -620,10 +645,15 @@
 
         <section class="intel">
 
-            <div class="page-meta">
-                <span>SURF INTEL</span>
-                <span class="page-meta-divider">·</span>
-                <span id="pageTimestamp">--</span>
+            <div class="page-header">
+                <div class="page-meta">
+                    <span>SURF INTEL</span>
+                    <span class="page-meta-divider">·</span>
+                    <span id="pageTimestamp">--</span>
+                </div>
+                <div class="surf-message">
+                    IT WAS FIRING AN HOUR AGO.
+                </div>
             </div>
 
             <div class="spot-list">
