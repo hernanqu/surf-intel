@@ -224,6 +224,61 @@ def score_combination(height_ft, period_s):
     return 65
 
 
+
+def select_relevant_swell(current):
+    components = [
+        {
+            "name": "primary",
+            "height_m": current.get("swell_wave_height"),
+            "period_s": current.get("swell_wave_period"),
+            "direction": current.get("swell_wave_direction"),
+        },
+        {
+            "name": "secondary",
+            "height_m": current.get("secondary_swell_wave_height"),
+            "period_s": current.get("secondary_swell_wave_period"),
+            "direction": current.get("secondary_swell_wave_direction"),
+        },
+        {
+            "name": "tertiary",
+            "height_m": current.get("tertiary_swell_wave_height"),
+            "period_s": current.get("tertiary_swell_wave_period"),
+            "direction": current.get("tertiary_swell_wave_direction"),
+        },
+    ]
+
+    valid = []
+
+    for component in components:
+        height_m = component["height_m"]
+        period_s = component["period_s"]
+
+        if (
+            height_m is None
+            or period_s is None
+            or height_m <= 0
+            or period_s <= 0
+        ):
+            continue
+
+        component["energy_score"] = (height_m ** 2) * period_s
+        valid.append(component)
+
+    if not valid:
+        return {
+            "name": "combined",
+            "height_m": current.get("wave_height"),
+            "period_s": current.get("wave_period"),
+            "direction": current.get("wave_direction"),
+            "energy_score": None,
+        }
+
+    return max(
+        valid,
+        key=lambda component: component["energy_score"]
+    )
+
+
 def make_assessment(current):
 
     wave_height_ft = meters_to_feet(
@@ -239,14 +294,22 @@ def make_assessment(current):
 
     wave_direction = current.get("wave_direction")
 
+    relevant_swell = select_relevant_swell(current)
+
     swell_height_ft = meters_to_feet(
-        current.get("swell_wave_height")
+        relevant_swell.get("height_m")
     )
-    swell_period_s = current.get(
-        "swell_wave_period"
+
+    swell_period_s = relevant_swell.get(
+        "period_s"
     )
-    swell_direction = current.get(
-        "swell_wave_direction"
+
+    swell_direction = relevant_swell.get(
+        "direction"
+    )
+
+    swell_source = relevant_swell.get(
+        "name"
     )
 
     wave_period_s = swell_period_s
@@ -345,17 +408,17 @@ def make_assessment(current):
         status = "NAH"
 
     elif (
-        wave_height_ft is not None
+        swell_height_ft is not None
         and wave_period_s is not None
-        and wave_height_ft >= 4
+        and swell_height_ft >= 4
         and wave_period_s >= 16
     ):
         status = "NAH"
 
     elif (
-        wave_height_ft is not None
+        swell_height_ft is not None
         and wave_period_s is not None
-        and wave_height_ft >= 3
+        and swell_height_ft >= 3
         and wave_period_s >= 18
     ):
         status = "NAH"
@@ -392,11 +455,11 @@ def make_assessment(current):
             )
 
         elif (
-            wave_height_ft is not None
+            swell_height_ft is not None
             and wave_period_s is not None
             and (
-                (wave_height_ft >= 4 and wave_period_s >= 16)
-                or (wave_height_ft >= 3 and wave_period_s >= 18)
+                (swell_height_ft >= 4 and wave_period_s >= 16)
+                or (swell_height_ft >= 3 and wave_period_s >= 18)
             )
         ):
             reason = (
@@ -506,6 +569,7 @@ def make_assessment(current):
         ),
         "swell_direction": swell_direction,
         "swell_compass": compass_direction(swell_direction),
+        "swell_source": swell_source,
         "wave_compass": compass_direction(wave_direction),
         "size_score": size_score,
         "period_score": period_score,
