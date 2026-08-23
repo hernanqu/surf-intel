@@ -205,7 +205,7 @@
 
         .conditions {
             width: min(440px, 100%);
-            margin: 34px auto 0;
+            margin: 14px auto 0;
 
             border-top: 1px solid var(--divider);
         }
@@ -379,8 +379,6 @@
             color: var(--accent);
         }
 
-        .spot-summary-status.mid,
-        .spot-summary-status.nah,
         .spot-summary-status.zzz {
             opacity: 0.55;
         }
@@ -394,15 +392,28 @@
         }
 
         .spot-details {
-            padding: 10px 0 34px;
+            padding: 0 0 22px;
         }
 
-        .spot-details[hidden] {
-            display: none;
+        .spot-details.collapsed {
+            padding-top: 0;
+            padding-bottom: 18px;
+        }
+
+        .spot-details.collapsed .conditions {
+            display: none !important;
+        }
+
+        .spot-details.collapsed .window {
+            margin-top: 0;
+        }
+
+        .spot-details.collapsed .reason {
+            margin-top: 8px;
         }
 
         .spot-panel .status {
-            margin-top: 8px;
+            display: none;
         }
 
         .spot-panel .location {
@@ -481,6 +492,66 @@
             --accent: #666666;
         }
 
+    
+        .spot-summary {
+            align-items: flex-start;
+        }
+
+        .spot-summary-name {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .spot-summary-reason {
+            display: block;
+            margin-top: 7px;
+            max-width: 380px;
+
+            font-size: 10px;
+            font-weight: 600;
+            line-height: 1.45;
+            letter-spacing: 0.01em;
+            text-transform: uppercase;
+
+            color: var(--text);
+            opacity: 0.65;
+        }
+
+        .spot-summary-status {
+            flex: 0 0 auto;
+            text-align: right;
+        }
+
+        .spot-summary-status-value {
+            display: block;
+            color: var(--accent);
+        }
+
+        .spot-summary-window {
+            display: block;
+            margin-top: 7px;
+
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+
+            color: var(--accent);
+        }
+
+        .spot-details .window,
+        .spot-details .reason {
+            display: none !important;
+        }
+
+        .spot-details.collapsed {
+            padding: 0;
+        }
+
+        .spot-summary-status-value.zzz {
+            opacity: 0.55;
+        }
+
     </style>
 </head>
 
@@ -515,14 +586,18 @@
                         <span class="spot-summary-name">
                             SOUTH, VENICE
                             <span class="local-label">LOCAL</span>
+                            <span class="spot-summary-reason">
+                                Checking conditions...
+                            </span>
                         </span>
 
                         <span class="spot-summary-status">
-                            ...
+                            <span class="spot-summary-status-value">...</span>
+                            <span class="spot-summary-window"></span>
                         </span>
                     </button>
 
-                    <div class="spot-details" hidden>
+                    <div class="spot-details collapsed">
                         <div class="status loading">...</div>
 
                         <div class="window">
@@ -592,14 +667,18 @@
                     >
                         <span class="spot-summary-name">
                             BREAKWATER, VENICE
+                            <span class="spot-summary-reason">
+                                Checking conditions...
+                            </span>
                         </span>
 
                         <span class="spot-summary-status">
-                            ...
+                            <span class="spot-summary-status-value">...</span>
+                            <span class="spot-summary-window"></span>
                         </span>
                     </button>
 
-                    <div class="spot-details" hidden>
+                    <div class="spot-details collapsed">
                         <div class="status loading">...</div>
 
                         <div class="window">
@@ -669,14 +748,18 @@
                     >
                         <span class="spot-summary-name">
                             BROAD, MALIBU
+                            <span class="spot-summary-reason">
+                                Checking conditions...
+                            </span>
                         </span>
 
                         <span class="spot-summary-status">
-                            ...
+                            <span class="spot-summary-status-value">...</span>
+                            <span class="spot-summary-window"></span>
                         </span>
                     </button>
 
-                    <div class="spot-details" hidden>
+                    <div class="spot-details collapsed">
                         <div class="status loading">...</div>
 
                         <div class="window">
@@ -860,7 +943,13 @@ function renderSpot(panel, data) {
     }
 
     const summaryStatus =
-        panel.querySelector(".spot-summary-status");
+        panel.querySelector(".spot-summary-status-value");
+
+    const summaryWindow =
+        panel.querySelector(".spot-summary-window");
+
+    const summaryReason =
+        panel.querySelector(".spot-summary-reason");
 
     const statusElement =
         panel.querySelector(".status");
@@ -873,8 +962,21 @@ function renderSpot(panel, data) {
 
     summaryStatus.textContent = status;
     summaryStatus.className =
-        "spot-summary-status " +
+        "spot-summary-status-value " +
         status.toLowerCase().replace("!", "");
+
+    summaryReason.textContent =
+        dawnReason(data, assessment);
+
+    if (
+        (status === "YEW!" || status === "MID") &&
+        data.window
+    ) {
+        summaryWindow.textContent =
+            "WINDOW: " + data.window;
+    } else {
+        summaryWindow.textContent = "";
+    }
 
     statusElement.textContent = status;
 
@@ -1043,7 +1145,10 @@ panels.forEach(panel => {
             String(!isOpen)
         );
 
-        details.hidden = isOpen;
+        details.classList.toggle(
+            "collapsed",
+            isOpen
+        );
     });
 
 });
