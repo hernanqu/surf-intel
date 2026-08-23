@@ -470,7 +470,15 @@
                     class="spot-option active"
                     data-spot-key="venice"
                 >
-                    VENICE
+                    BREAKWATER, VENICE
+                </button>
+                <span>·</span>
+                <button
+                    type="button"
+                    class="spot-option"
+                    data-spot-key="venice_south"
+                >
+                    SOUTH, VENICE
                 </button>
                 <span>·</span>
                 <button
@@ -478,7 +486,7 @@
                     class="spot-option"
                     data-spot-key="broad"
                 >
-                    BROAD
+                    BROAD, MALIBU
                 </button>
             </div>
 
@@ -493,7 +501,7 @@ const urlParams = new URLSearchParams(window.location.search);
 
 let activeSpot = urlParams.get("spot") || "venice";
 
-if (!["venice", "broad"].includes(activeSpot)) {
+if (!["venice", "venice_south", "broad"].includes(activeSpot)) {
     activeSpot = "venice";
 }
 

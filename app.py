@@ -10,6 +10,10 @@ MARINE_CACHE = {
         "data": None,
         "timestamp": 0,
     },
+    "venice_south": {
+        "data": None,
+        "timestamp": 0,
+    },
     "broad": {
         "data": None,
         "timestamp": 0,
@@ -38,6 +42,15 @@ SPOTS = {
         "name": "Venice Breakwater",
         "latitude": 33.9832,
         "longitude": -118.4743,
+        "wind_profile": {
+            "offshore": [(45, 135)],
+            "onshore": [(225, 315)],
+        },
+    },
+    "venice_south": {
+        "name": "Venice South",
+        "latitude": 33.9746774,
+        "longitude": -118.4649831,
         "wind_profile": {
             "offshore": [(45, 135)],
             "onshore": [(225, 315)],
