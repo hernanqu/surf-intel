@@ -150,6 +150,39 @@
             color: var(--accent);
         }
 
+        .spot-selector {
+            margin-top: 18px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+
+            color: rgba(255, 255, 255, 0.35);
+        }
+
+        .spot-option {
+            padding: 0;
+            border: 0;
+            background: transparent;
+
+            font: inherit;
+            letter-spacing: inherit;
+            text-transform: inherit;
+
+            color: rgba(255, 255, 255, 0.35);
+            cursor: pointer;
+        }
+
+        .spot-option.active {
+            color: var(--accent);
+        }
+
         .location {
             margin-top: 20px;
 
@@ -344,6 +377,24 @@
                 WINDOW: --
             </div>
 
+            <div class="spot-selector">
+                <button
+                    type="button"
+                    class="spot-option active"
+                    data-spot-key="venice"
+                >
+                    VENICE
+                </button>
+                <span>·</span>
+                <button
+                    type="button"
+                    class="spot-option"
+                    data-spot-key="broad"
+                >
+                    BROAD
+                </button>
+            </div>
+
             <div
                 id="location"
                 class="location"
@@ -463,12 +514,27 @@
 </div>
 
 <script>
+
+const urlParams = new URLSearchParams(window.location.search);
+
+let activeSpot = urlParams.get("spot") || "venice";
+
+if (!["venice", "broad"].includes(activeSpot)) {
+    activeSpot = "venice";
+}
+
 async function loadSurfData(forceRefresh = false) {
 
     try {
-        const endpoint = forceRefresh
-            ? "/api/marine?refresh=1"
-            : "/api/marine";
+        const params = new URLSearchParams({
+            spot: activeSpot
+        });
+
+        if (forceRefresh) {
+            params.set("refresh", "1");
+        }
+
+        const endpoint = "/api/marine?" + params.toString();
 
         const response = await fetch(endpoint);
 
@@ -479,6 +545,12 @@ async function loadSurfData(forceRefresh = false) {
         }
 
         const data = await response.json();
+
+        if (data.spot && data.spot.name) {
+            document.getElementById("location").dataset.spot =
+                data.spot.name;
+            updateLocationTime();
+        }
         const assessment = data.assessment;
 
         const conditionsEl =
@@ -711,7 +783,11 @@ refreshButton.addEventListener(
         refreshButton.textContent = "…";
 
         try {
-            await fetch("/api/marine?refresh=1");
+            await fetch(
+                "/api/marine?spot=" +
+                encodeURIComponent(activeSpot) +
+                "&refresh=1"
+            );
         } finally {
             window.location.reload();
         }
@@ -719,6 +795,29 @@ refreshButton.addEventListener(
 );
 
 
+
+document.querySelectorAll(".spot-option").forEach(button => {
+    const spotKey = button.dataset.spotKey;
+
+    button.classList.toggle(
+        "active",
+        spotKey === activeSpot
+    );
+
+    button.addEventListener("click", () => {
+        if (spotKey === activeSpot) {
+            return;
+        }
+
+        const params = new URLSearchParams(
+            window.location.search
+        );
+
+        params.set("spot", spotKey);
+
+        window.location.search = params.toString();
+    });
+});
 
 loadSurfData();
 </script>

@@ -6,8 +6,14 @@ app = Flask(__name__)
 
 # Simple in-memory cache to avoid excessive upstream API requests.
 MARINE_CACHE = {
-    "data": None,
-    "timestamp": 0,
+    "venice": {
+        "data": None,
+        "timestamp": 0,
+    },
+    "broad": {
+        "data": None,
+        "timestamp": 0,
+    },
 }
 
 CACHE_TTL = 600  # 10 minutes
@@ -27,15 +33,29 @@ SURFER = {
 # SPOT
 # --------------------------------------------------
 
-VENICE = {
-    "name": "Venice Breakwater",
-    "latitude": 33.9832,
-    "longitude": -118.4743,
-    "wind_profile": {
-        "offshore": [(45, 135)],
-        "onshore": [(225, 315)],
+SPOTS = {
+    "venice": {
+        "name": "Venice Breakwater",
+        "latitude": 33.9832,
+        "longitude": -118.4743,
+        "wind_profile": {
+            "offshore": [(45, 135)],
+            "onshore": [(225, 315)],
+        },
+    },
+    "broad": {
+        "name": "Broad Beach",
+        "latitude": 34.0344,
+        "longitude": -118.8508,
+        "wind_profile": {
+            "offshore": [(30, 120)],
+            "onshore": [(210, 300)],
+        },
     },
 }
+
+# Keep Venice as the default while multi-spot routing is added.
+VENICE = SPOTS["venice"]
 
 OPEN_METEO_URL = "https://marine-api.open-meteo.com/v1/marine"
 OPEN_METEO_WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
@@ -279,7 +299,7 @@ def select_relevant_swell(current):
     )
 
 
-def make_assessment(current):
+def make_assessment(current, spot=VENICE):
 
     wave_height_ft = meters_to_feet(
         current.get("wave_height")
@@ -332,7 +352,7 @@ def make_assessment(current):
 
     wind_quality = classify_wind(
         wind_direction,
-        VENICE.get("wind_profile", {})
+        spot.get("wind_profile", {})
     )
 
     if wind_speed_kt is None:
@@ -581,7 +601,7 @@ def make_assessment(current):
     }
 
 
-def calculate_window(data, current_status, sunset_status=None):
+def calculate_window(data, current_status, sunset_status=None, spot=VENICE):
 
     if current_status not in ("YEW!", "MID"):
         return None
@@ -655,6 +675,26 @@ def calculate_window(data, current_status, sunset_status=None):
             "swell_wave_period": hourly.get(
                 "swell_wave_period", [None]
             )[index],
+
+            "secondary_swell_wave_height": hourly.get(
+                "secondary_swell_wave_height", [None]
+            )[index],
+            "secondary_swell_wave_direction": hourly.get(
+                "secondary_swell_wave_direction", [None]
+            )[index],
+            "secondary_swell_wave_period": hourly.get(
+                "secondary_swell_wave_period", [None]
+            )[index],
+
+            "tertiary_swell_wave_height": hourly.get(
+                "tertiary_swell_wave_height", [None]
+            )[index],
+            "tertiary_swell_wave_direction": hourly.get(
+                "tertiary_swell_wave_direction", [None]
+            )[index],
+            "tertiary_swell_wave_period": hourly.get(
+                "tertiary_swell_wave_period", [None]
+            )[index],
             "wind_speed_10m": wind_hourly.get(
                 "wind_speed_10m", [None]
             )[wind_i],
@@ -666,7 +706,7 @@ def calculate_window(data, current_status, sunset_status=None):
             )[wind_i],
         }
 
-        future_assessment = make_assessment(future)
+        future_assessment = make_assessment(future, spot)
 
         if future_assessment.get("status") not in ("YEW!", "MID"):
             break
@@ -796,18 +836,24 @@ def make_tide_summary(predictions):
     }
 
 
-def get_marine_data():
+def get_marine_data(spot_key="venice"):
+
+    spot = SPOTS.get(spot_key, SPOTS["venice"])
+    cache = MARINE_CACHE.get(
+        spot_key,
+        MARINE_CACHE["venice"]
+    )
     # Return cached data if it is still fresh.
     now = time.time()
     if (
-        MARINE_CACHE["data"] is not None
-        and now - MARINE_CACHE["timestamp"] < CACHE_TTL
+        cache["data"] is not None
+        and now - cache["timestamp"] < CACHE_TTL
     ):
-        return MARINE_CACHE["data"]
+        return cache["data"]
 
     marine_params = {
-        "latitude": VENICE["latitude"],
-        "longitude": VENICE["longitude"],
+        "latitude": spot["latitude"],
+        "longitude": spot["longitude"],
         "hourly": HOURLY,
         "current": CURRENT,
         "timezone": "America/Los_Angeles",
@@ -823,8 +869,8 @@ def get_marine_data():
     marine_data = marine_response.json()
 
     weather_params = {
-        "latitude": VENICE["latitude"],
-        "longitude": VENICE["longitude"],
+        "latitude": spot["latitude"],
+        "longitude": spot["longitude"],
         "current": "wind_speed_10m,wind_direction_10m,is_day",
         "hourly": "wind_speed_10m,wind_direction_10m,is_day,precipitation",
         "daily": "sunrise,sunset",
@@ -850,8 +896,8 @@ def get_marine_data():
         marine_data["weather_daily"] = {}
 
     # Store the successful marine result.
-    MARINE_CACHE["data"] = marine_data
-    MARINE_CACHE["timestamp"] = now
+    cache["data"] = marine_data
+    cache["timestamp"] = now
 
     return marine_data
 
@@ -1014,7 +1060,7 @@ def get_next_sunrise(data):
     return None
 
 
-def get_dawn_patrol_forecast(data):
+def get_dawn_patrol_forecast(data, spot=VENICE):
     from datetime import datetime
     from zoneinfo import ZoneInfo
 
@@ -1120,7 +1166,7 @@ def get_dawn_patrol_forecast(data):
 
     forecast["is_day"] = 1
 
-    assessment = make_assessment(forecast)
+    assessment = make_assessment(forecast, spot)
 
     if assessment["status"] == "NAH":
         outlook = "LOOKING HEAVY"
@@ -1147,17 +1193,25 @@ def index():
 
 
 @app.route("/api/marine")
+
 def marine():
+
+    spot_key = request.args.get("spot", "venice")
+
+    if spot_key not in SPOTS:
+        spot_key = "venice"
+
+    spot = SPOTS[spot_key]
 
     force_refresh = (
         request.args.get("refresh") == "1"
     )
 
     if force_refresh:
-        MARINE_CACHE["data"] = None
-        MARINE_CACHE["timestamp"] = 0
+        MARINE_CACHE[spot_key]["data"] = None
+        MARINE_CACHE[spot_key]["timestamp"] = 0
 
-    data = get_marine_data()
+    data = get_marine_data(spot_key)
 
     current = data.get("current", {})
 
@@ -1178,9 +1232,9 @@ def marine():
     else:
         current["is_day"] = wind.get("is_day")
 
-    assessment = make_assessment(current)
+    assessment = make_assessment(current, spot)
     dawn_patrol = get_next_sunrise(data)
-    dawn_forecast = get_dawn_patrol_forecast(data)
+    dawn_forecast = get_dawn_patrol_forecast(data, spot)
     sunset_status = get_sunset_status(data)
     rain_lockout = get_rain_lockout(data)
 
@@ -1210,7 +1264,8 @@ def marine():
     window = calculate_window(
         data,
         assessment.get("status"),
-        sunset_status
+        sunset_status,
+        spot
     )
 
     tide = make_tide_summary(
@@ -1222,7 +1277,7 @@ def marine():
     )
 
     return jsonify({
-        "spot": VENICE,
+        "spot": spot,
         "surfer": SURFER,
         "assessment": assessment,
         "dawn_patrol": dawn_patrol,
@@ -1244,4 +1299,4 @@ def marine():
 # --------------------------------------------------
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
