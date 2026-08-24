@@ -1090,9 +1090,33 @@ function renderSpot(panel, data) {
     }
 
 
-    const isNight =
+    const apiIsDay =
         data.current &&
-        data.current.is_day === 0;
+        data.current.is_day;
+
+    let isNight;
+
+    if (apiIsDay === 0) {
+        isNight = true;
+    } else if (apiIsDay === 1) {
+        isNight = false;
+    } else {
+        // Safety fallback: night state must not depend on wind data.
+        // Use Los Angeles local time if the weather API cannot provide
+        // daylight state.
+        const laHour = Number(
+            new Intl.DateTimeFormat(
+                "en-US",
+                {
+                    timeZone: "America/Los_Angeles",
+                    hour: "numeric",
+                    hour12: false
+                }
+            ).format(new Date())
+        );
+
+        isNight = laHour >= 20 || laHour < 6;
+    }
 
     const surfMessage = document.getElementById("surfMessage");
     const dawnMeta = document.getElementById("dawnMeta");
