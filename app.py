@@ -925,30 +925,41 @@ def get_marine_data(spot_key="venice"):
         WEATHER_CACHE["venice"]
     )
 
-    try:
-        weather_response = requests.get(
-            OPEN_METEO_WEATHER_URL,
-            params=weather_params,
-            timeout=10
-        )
-        weather_response.raise_for_status()
-        weather_data = weather_response.json()
+    weather_data = None
+    weather_error = None
 
+    # The full weather request carries current wind plus the hourly/daily
+    # data used by the window, rain, sunrise and sunset logic.
+    for attempt in range(3):
+        try:
+            weather_response = requests.get(
+                OPEN_METEO_WEATHER_URL,
+                params=weather_params,
+                timeout=10
+            )
+            weather_response.raise_for_status()
+            weather_data = weather_response.json()
+            break
+        except requests.RequestException as exc:
+            weather_error = exc
+
+            if attempt < 2:
+                time.sleep(0.75)
+
+    if weather_data is not None:
         marine_data["wind"] = weather_data.get("current", {})
         marine_data["wind_hourly"] = weather_data.get("hourly", {})
         marine_data["weather_daily"] = weather_data.get("daily", {})
         marine_data["weather_fallback"] = False
         marine_data["weather_fallback_age_minutes"] = None
 
-        # Remember the last successful weather response separately
-        # from the marine cache.
         weather_cache["data"] = weather_data
         weather_cache["timestamp"] = time.time()
 
-    except requests.RequestException as exc:
+    else:
         print(
-            "Open-Meteo weather request failed:",
-            repr(exc),
+            "Open-Meteo full weather request failed after retries:",
+            repr(weather_error),
             flush=True
         )
 
@@ -975,11 +986,68 @@ def get_marine_data(spot_key="venice"):
             )
 
         else:
-            marine_data["wind"] = {}
-            marine_data["wind_hourly"] = {}
-            marine_data["weather_daily"] = {}
-            marine_data["weather_fallback"] = False
-            marine_data["weather_fallback_age_minutes"] = None
+            # After a Render restart there may be no in-memory fallback.
+            # Try a much smaller request so current wind and is_day can
+            # still survive even if the larger forecast request fails.
+            current_weather = None
+            current_weather_error = None
+
+            current_weather_params = {
+                "latitude": spot["latitude"],
+                "longitude": spot["longitude"],
+                "current": (
+                    "wind_speed_10m,"
+                    "wind_direction_10m,"
+                    "is_day"
+                ),
+                "timezone": "America/Los_Angeles",
+            }
+
+            for attempt in range(3):
+                try:
+                    current_weather_response = requests.get(
+                        OPEN_METEO_WEATHER_URL,
+                        params=current_weather_params,
+                        timeout=10
+                    )
+                    current_weather_response.raise_for_status()
+                    current_weather = (
+                        current_weather_response.json()
+                    )
+                    break
+                except requests.RequestException as exc:
+                    current_weather_error = exc
+
+                    if attempt < 2:
+                        time.sleep(0.75)
+
+            if current_weather is not None:
+                print(
+                    "Using lightweight current weather request.",
+                    flush=True
+                )
+
+                marine_data["wind"] = current_weather.get(
+                    "current",
+                    {}
+                )
+                marine_data["wind_hourly"] = {}
+                marine_data["weather_daily"] = {}
+                marine_data["weather_fallback"] = False
+                marine_data["weather_fallback_age_minutes"] = None
+
+            else:
+                print(
+                    "Open-Meteo current weather request also failed:",
+                    repr(current_weather_error),
+                    flush=True
+                )
+
+                marine_data["wind"] = {}
+                marine_data["wind_hourly"] = {}
+                marine_data["weather_daily"] = {}
+                marine_data["weather_fallback"] = False
+                marine_data["weather_fallback_age_minutes"] = None
 
     # Store the successful marine result.
     cache["data"] = marine_data
