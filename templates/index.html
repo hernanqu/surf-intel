@@ -655,6 +655,7 @@
                     <span class="page-meta-divider">·</span>
                     <span id="pageTimestamp">--</span>
                 </div>
+                <div class="dawn-meta" id="dawnMeta" style="display:none;"></div>
                 <div class="surf-message" id="surfMessage">
                     IT WAS FIRING AN HOUR AGO.
                 </div>
@@ -979,9 +980,6 @@ function dawnReason(data, assessment) {
         const dawn = data.dawn_forecast;
 
         return (
-            "DAWN PATROL: " +
-            dawn.time +
-            " · " +
             dawn.outlook +
             " · " +
             dawn.assessment.wave_height_range +
@@ -1087,11 +1085,27 @@ function renderSpot(panel, data) {
         data.current.is_day === 0;
 
     const surfMessage = document.getElementById("surfMessage");
+    const dawnMeta = document.getElementById("dawnMeta");
 
     if (surfMessage) {
         surfMessage.textContent = isNight
             ? "HASTA MAÑANA."
             : "IT WAS FIRING AN HOUR AGO.";
+    }
+
+    if (
+        dawnMeta &&
+        isNight &&
+        data.spot &&
+        data.spot.name === "South Venice" &&
+        data.dawn_forecast
+    ) {
+        dawnMeta.textContent =
+            "DAWN PATROL · " + data.dawn_forecast.time;
+        dawnMeta.style.display = "";
+    } else if (dawnMeta && !isNight) {
+        dawnMeta.textContent = "";
+        dawnMeta.style.display = "none";
     }
 
     if (isNight) {
