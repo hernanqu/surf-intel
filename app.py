@@ -20,7 +20,16 @@ MARINE_CACHE = {
     },
 }
 
+# Separate last-known-good weather cache.
+# A temporary weather API failure can reuse recent wind data.
+WEATHER_CACHE = {
+    "venice": {"data": None, "timestamp": 0},
+    "venice_south": {"data": None, "timestamp": 0},
+    "broad": {"data": None, "timestamp": 0},
+}
+
 CACHE_TTL = 600  # 10 minutes
+WEATHER_FALLBACK_TTL = 1800  # 30 minutes
 
 # --------------------------------------------------
 # SURFER PROFILE
@@ -911,6 +920,11 @@ def get_marine_data(spot_key="venice"):
         "forecast_days": 2,
     }
 
+    weather_cache = WEATHER_CACHE.get(
+        spot_key,
+        WEATHER_CACHE["venice"]
+    )
+
     try:
         weather_response = requests.get(
             OPEN_METEO_WEATHER_URL,
@@ -919,18 +933,47 @@ def get_marine_data(spot_key="venice"):
         )
         weather_response.raise_for_status()
         weather_data = weather_response.json()
+
         marine_data["wind"] = weather_data.get("current", {})
         marine_data["wind_hourly"] = weather_data.get("hourly", {})
         marine_data["weather_daily"] = weather_data.get("daily", {})
+        marine_data["weather_fallback"] = False
+
+        # Remember the last successful weather response separately
+        # from the marine cache.
+        weather_cache["data"] = weather_data
+        weather_cache["timestamp"] = time.time()
+
     except requests.RequestException as exc:
         print(
             "Open-Meteo weather request failed:",
             repr(exc),
             flush=True
         )
-        marine_data["wind"] = {}
-        marine_data["wind_hourly"] = {}
-        marine_data["weather_daily"] = {}
+
+        fallback_data = weather_cache["data"]
+        fallback_age = time.time() - weather_cache["timestamp"]
+
+        if (
+            fallback_data is not None
+            and fallback_age <= WEATHER_FALLBACK_TTL
+        ):
+            print(
+                "Using last-known-good weather data:",
+                f"{round(fallback_age / 60, 1)} minutes old",
+                flush=True
+            )
+
+            marine_data["wind"] = fallback_data.get("current", {})
+            marine_data["wind_hourly"] = fallback_data.get("hourly", {})
+            marine_data["weather_daily"] = fallback_data.get("daily", {})
+            marine_data["weather_fallback"] = True
+
+        else:
+            marine_data["wind"] = {}
+            marine_data["wind_hourly"] = {}
+            marine_data["weather_daily"] = {}
+            marine_data["weather_fallback"] = False
 
     # Store the successful marine result.
     cache["data"] = marine_data
