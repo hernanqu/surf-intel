@@ -651,7 +651,7 @@
                     <span class="page-meta-divider">·</span>
                     <span id="pageTimestamp">--</span>
                 </div>
-                <div class="surf-message">
+                <div class="surf-message" id="surfMessage">
                     IT WAS FIRING AN HOUR AGO.
                 </div>
             </div>
@@ -1081,6 +1081,14 @@ function renderSpot(panel, data) {
     const isNight =
         data.current &&
         data.current.is_day === 0;
+
+    const surfMessage = document.getElementById("surfMessage");
+
+    if (surfMessage) {
+        surfMessage.textContent = isNight
+            ? "HASTA MAÑANA."
+            : "IT WAS FIRING AN HOUR AGO.";
+    }
 
     if (isNight) {
         conditionsElement.classList.add("night");
