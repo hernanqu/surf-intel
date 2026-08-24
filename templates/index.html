@@ -1135,12 +1135,35 @@ function renderSpot(panel, data) {
             : "--";
 
 
-    panel.querySelector(".wind-details").textContent =
+    const windDetails = panel.querySelector(".wind-details");
+
+    windDetails.textContent =
         assessment.wind_speed_kt != null
             ? assessment.wind_speed_kt +
               " KT " +
               assessment.wind_compass
             : "--";
+
+    let windAge = panel.querySelector(".wind-age");
+
+    if (!windAge) {
+        windAge = document.createElement("div");
+        windAge.className = "wind-age";
+        windDetails.insertAdjacentElement("afterend", windAge);
+    }
+
+    if (
+        data.weather_fallback &&
+        data.weather_fallback_age_minutes != null
+    ) {
+        windAge.textContent =
+            data.weather_fallback_age_minutes +
+            " MIN AGO";
+        windAge.style.display = "";
+    } else {
+        windAge.textContent = "";
+        windAge.style.display = "none";
+    }
 
 
     panel.querySelector(".tide").textContent =

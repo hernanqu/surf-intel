@@ -938,6 +938,7 @@ def get_marine_data(spot_key="venice"):
         marine_data["wind_hourly"] = weather_data.get("hourly", {})
         marine_data["weather_daily"] = weather_data.get("daily", {})
         marine_data["weather_fallback"] = False
+        marine_data["weather_fallback_age_minutes"] = None
 
         # Remember the last successful weather response separately
         # from the marine cache.
@@ -968,12 +969,17 @@ def get_marine_data(spot_key="venice"):
             marine_data["wind_hourly"] = fallback_data.get("hourly", {})
             marine_data["weather_daily"] = fallback_data.get("daily", {})
             marine_data["weather_fallback"] = True
+            marine_data["weather_fallback_age_minutes"] = max(
+                1,
+                round(fallback_age / 60)
+            )
 
         else:
             marine_data["wind"] = {}
             marine_data["wind_hourly"] = {}
             marine_data["weather_daily"] = {}
             marine_data["weather_fallback"] = False
+            marine_data["weather_fallback_age_minutes"] = None
 
     # Store the successful marine result.
     cache["data"] = marine_data
@@ -1371,6 +1377,13 @@ def marine():
         ),
         "current": current,
         "wind": wind,
+        "weather_fallback": data.get(
+            "weather_fallback",
+            False
+        ),
+        "weather_fallback_age_minutes": data.get(
+            "weather_fallback_age_minutes"
+        ),
     })
 
 
