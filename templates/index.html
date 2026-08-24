@@ -1134,8 +1134,10 @@ function renderSpot(panel, data) {
         data.spot.name === "Venice South" &&
         data.dawn_forecast
     ) {
-        dawnMeta.textContent =
-            "DAWN PATROL · " + data.dawn_forecast.time;
+        dawnMeta.innerHTML =
+            "DAWN PATROL " +
+            '<span class="page-meta-divider">·</span> ' +
+            data.dawn_forecast.time;
         dawnMeta.style.display = "";
     } else if (dawnMeta && !isNight) {
         dawnMeta.textContent = "";
