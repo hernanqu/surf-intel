@@ -460,6 +460,24 @@
             opacity: 0.45;
         }
 
+        .sunset-footer {
+            position: fixed;
+            left: 22px;
+            bottom: 20px;
+            z-index: 10;
+
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+
+            color: var(--muted);
+
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
         .refresh-all {
             position: fixed;
             right: 22px;
@@ -927,6 +945,12 @@
 
     </main>
 
+    <div
+        class="sunset-footer"
+        id="sunsetFooter"
+        style="display:none;"
+    ></div>
+
     <button
         id="refreshAllButton"
         class="refresh-all"
@@ -1107,14 +1131,18 @@ function renderSpot(panel, data) {
     if (surfMessage) {
         if (isNight) {
             surfMessage.textContent = "HASTA MAÑANA.";
-            surfMessage.style.display = "";
         } else {
-            surfMessage.textContent = "";
-            surfMessage.style.display = "none";
+            surfMessage.textContent =
+                "IT WAS FIRING AN HOUR AGO.";
         }
+
+        surfMessage.style.display = "";
     }
 
     const dawnMeta = document.getElementById("dawnMeta");
+
+    const sunsetFooter =
+        document.getElementById("sunsetFooter");
 
     if (
         dawnMeta &&
@@ -1127,19 +1155,25 @@ function renderSpot(panel, data) {
                 '<span class="page-meta-divider">·</span> ' +
                 data.dawn_forecast.time;
             dawnMeta.style.display = "";
-        } else if (
+        } else {
+            dawnMeta.textContent = "";
+            dawnMeta.style.display = "none";
+        }
+
+        if (
+            sunsetFooter &&
             !isNight &&
             data.sunset &&
             data.sunset.sunset
         ) {
-            dawnMeta.innerHTML =
+            sunsetFooter.innerHTML =
                 "SUNSET " +
                 '<span class="page-meta-divider">·</span> ' +
                 data.sunset.sunset;
-            dawnMeta.style.display = "";
-        } else {
-            dawnMeta.textContent = "";
-            dawnMeta.style.display = "none";
+            sunsetFooter.style.display = "";
+        } else if (sunsetFooter) {
+            sunsetFooter.textContent = "";
+            sunsetFooter.style.display = "none";
         }
     }
 
