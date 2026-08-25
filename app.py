@@ -1391,9 +1391,7 @@ def get_session_forecast(data, spot, session_mode):
         ):
             best["assessment"]["status"] = "MID"
             best["assessment"]["reason"] = (
-                "Sunset is close. Only "
-                + str(minutes_remaining)
-                + " minutes of daylight remain."
+                "Limited daylight remaining."
             )
             status = "MID"
 
@@ -1688,9 +1686,7 @@ def marine():
     ):
         assessment["status"] = "MID"
         assessment["reason"] = (
-            "Sunset is close. Only "
-            + str(sunset_status["minutes_remaining"])
-            + " minutes of daylight remain."
+            "Limited daylight remaining."
         )
 
     window = calculate_window(

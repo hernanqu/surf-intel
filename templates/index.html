@@ -1087,28 +1087,8 @@ function renderSpot(panel, data) {
         const sessionAssessment =
             sessionForecast.assessment;
 
-        const sunsetClose =
-            sessionMode === "SUNSET" &&
-            sessionAssessment.reason &&
-            sessionAssessment.reason.startsWith(
-                "Sunset is close."
-            );
-
-        const sunsetMinutes =
-            data.sunset &&
-            data.sunset.minutes_remaining;
-
         summaryReason.textContent =
             sessionForecast.outlook +
-            (
-                sunsetClose &&
-                sunsetMinutes !== null &&
-                sunsetMinutes !== undefined
-                    ? " · SUNSET IN " +
-                      sunsetMinutes +
-                      " MIN"
-                    : ""
-            ) +
             " · " +
             sessionAssessment.wave_height_range +
             " · " +
