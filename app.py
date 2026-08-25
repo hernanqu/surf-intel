@@ -1187,6 +1187,14 @@ def calculate_solar_time(latitude, longitude, event="sunset", date=None):
     )
 
     event_utc = utc_midnight + timedelta(hours=utc_hour)
+    event_local = event_utc.astimezone(pacific)
+
+    # Solar events can cross the UTC calendar boundary.
+    # Preserve the requested local calendar date.
+    if event_local.date() < date:
+        event_utc += timedelta(days=1)
+    elif event_local.date() > date:
+        event_utc -= timedelta(days=1)
 
     return event_utc.astimezone(pacific)
 
