@@ -1105,6 +1105,86 @@ def get_rain_lockout(data):
     }
 
 
+def calculate_solar_time(latitude, longitude, event="sunset", date=None):
+    from datetime import datetime, timedelta
+    from math import acos, asin, atan, cos, degrees, radians, sin, tan
+    from zoneinfo import ZoneInfo
+
+    pacific = ZoneInfo("America/Los_Angeles")
+
+    if date is None:
+        date = datetime.now(pacific).date()
+
+    day_of_year = date.timetuple().tm_yday
+
+    lng_hour = longitude / 15.0
+
+    if event == "sunrise":
+        approximate_time = day_of_year + ((6 - lng_hour) / 24)
+    else:
+        approximate_time = day_of_year + ((18 - lng_hour) / 24)
+
+    mean_anomaly = (0.9856 * approximate_time) - 3.289
+
+    true_longitude = (
+        mean_anomaly
+        + (1.916 * sin(radians(mean_anomaly)))
+        + (0.020 * sin(radians(2 * mean_anomaly)))
+        + 282.634
+    ) % 360
+
+    right_ascension = degrees(
+        atan(0.91764 * tan(radians(true_longitude)))
+    ) % 360
+
+    longitude_quadrant = int(true_longitude / 90) * 90
+    ra_quadrant = int(right_ascension / 90) * 90
+    right_ascension += longitude_quadrant - ra_quadrant
+    right_ascension /= 15
+
+    sin_declination = 0.39782 * sin(radians(true_longitude))
+    cos_declination = cos(asin(sin_declination))
+
+    zenith = 90.833
+
+    cos_hour_angle = (
+        cos(radians(zenith))
+        - (sin_declination * sin(radians(latitude)))
+    ) / (
+        cos_declination * cos(radians(latitude))
+    )
+
+    if cos_hour_angle < -1 or cos_hour_angle > 1:
+        return None
+
+    if event == "sunrise":
+        hour_angle = 360 - degrees(acos(cos_hour_angle))
+    else:
+        hour_angle = degrees(acos(cos_hour_angle))
+
+    hour_angle /= 15
+
+    local_mean_time = (
+        hour_angle
+        + right_ascension
+        - (0.06571 * approximate_time)
+        - 6.622
+    )
+
+    utc_hour = (local_mean_time - lng_hour) % 24
+
+    utc_midnight = datetime(
+        date.year,
+        date.month,
+        date.day,
+        tzinfo=ZoneInfo("UTC")
+    )
+
+    event_utc = utc_midnight + timedelta(hours=utc_hour)
+
+    return event_utc.astimezone(pacific)
+
+
 def get_is_daylight(data):
     from datetime import datetime
     from zoneinfo import ZoneInfo
@@ -1414,71 +1494,65 @@ def get_session_forecast(data, spot, session_mode):
     }
 
 
-def get_sunset_status(data):
+def get_sunset_status(data, spot=VENICE):
     from datetime import datetime
     from zoneinfo import ZoneInfo
 
-    daily = data.get("weather_daily", {})
-    sunset_times = daily.get("sunset", [])
+    pacific = ZoneInfo("America/Los_Angeles")
+    now = datetime.now(pacific)
 
-    if not sunset_times:
+    sunset_dt = calculate_solar_time(
+        spot["latitude"],
+        spot["longitude"],
+        "sunset",
+        now.date()
+    )
+
+    if sunset_dt is None:
         return {
             "sunset": None,
             "minutes_remaining": None,
         }
 
-    pacific = ZoneInfo("America/Los_Angeles")
-    now = datetime.now(pacific)
-
-    for sunset in sunset_times:
-        try:
-            sunset_dt = datetime.fromisoformat(sunset)
-            sunset_dt = sunset_dt.replace(tzinfo=pacific)
-        except ValueError:
-            continue
-
-        if sunset_dt.date() != now.date():
-            continue
-
-        minutes_remaining = max(
-            0,
-            int((sunset_dt - now).total_seconds() // 60)
-        )
-
-        return {
-            "sunset": sunset_dt.strftime("%-I:%M %p"),
-            "minutes_remaining": minutes_remaining,
-        }
+    minutes_remaining = max(
+        0,
+        int((sunset_dt - now).total_seconds() // 60)
+    )
 
     return {
-        "sunset": None,
-        "minutes_remaining": None,
+        "sunset": sunset_dt.strftime("%-I:%M %p"),
+        "minutes_remaining": minutes_remaining,
     }
 
-def get_next_sunrise(data):
-    daily = data.get("weather_daily", {})
-    sunrise_times = daily.get("sunrise", [])
-
-    if not sunrise_times:
-        return None
-
-    from datetime import datetime
+def get_next_sunrise(data, spot=VENICE):
+    from datetime import datetime, timedelta
     from zoneinfo import ZoneInfo
 
     pacific = ZoneInfo("America/Los_Angeles")
     now = datetime.now(pacific)
 
-    for sunrise in sunrise_times:
-        try:
-            sunrise_dt = datetime.fromisoformat(sunrise)
-            sunrise_dt = sunrise_dt.replace(tzinfo=pacific)
-        except ValueError:
-            continue
+    sunrise_dt = calculate_solar_time(
+        spot["latitude"],
+        spot["longitude"],
+        "sunrise",
+        now.date()
+    )
 
-        if sunrise_dt > now:
-            return sunrise_dt.strftime("%-I:%M %p")
+    if sunrise_dt is None:
+        return None
 
-    return None
+    if sunrise_dt <= now:
+        sunrise_dt = calculate_solar_time(
+            spot["latitude"],
+            spot["longitude"],
+            "sunrise",
+            now.date() + timedelta(days=1)
+        )
+
+    if sunrise_dt is None:
+        return None
+
+    return sunrise_dt.strftime("%-I:%M %p")
 
 
 def get_dawn_patrol_forecast(data, spot=VENICE):
@@ -1654,7 +1728,7 @@ def marine():
         current["is_day"] = wind.get("is_day")
 
     assessment = make_assessment(current, spot)
-    dawn_patrol = get_next_sunrise(data)
+    dawn_patrol = get_next_sunrise(data, spot)
     dawn_forecast = get_dawn_patrol_forecast(data, spot)
     sunset_status = get_sunset_status(data)
 
