@@ -491,7 +491,7 @@
             --accent: #874cff;
         }
 
-        .spot-panel.status-mid {
+        .spot-panel.status-go {
             --accent: #4c8dff;
         }
 
@@ -1029,15 +1029,15 @@ function renderSpot(panel, data) {
 
     panel.classList.remove(
         "status-yewww",
-        "status-mid",
+        "status-go",
         "status-nah",
         "status-zzz"
     );
 
     if (status === "YEW!") {
         panel.classList.add("status-yewww");
-    } else if (status === "MID") {
-        panel.classList.add("status-mid");
+    } else if (status === "GO") {
+        panel.classList.add("status-go");
     } else if (status === "NAH") {
         panel.classList.add("status-nah");
     } else if (status === "ZZZ") {
@@ -1072,7 +1072,7 @@ function renderSpot(panel, data) {
         dawnReason(data, assessment);
 
     if (
-        (status === "YEW!" || status === "MID") &&
+        (status === "YEW!" || status === "GO") &&
         data.window
     ) {
         summaryWindow.textContent =
@@ -1086,7 +1086,7 @@ function renderSpot(panel, data) {
     if (status === "YEW!") {
         statusElement.className = "status yewww";
     } else if (
-        status === "MID" ||
+        status === "GO" ||
         status === "NAH" ||
         status === "ZZZ"
     ) {
@@ -1153,7 +1153,7 @@ function renderSpot(panel, data) {
 
 
     if (
-        (status === "YEW!" || status === "MID") &&
+        (status === "YEW!" || status === "GO") &&
         data.window
     ) {
         windowElement.textContent =

@@ -441,7 +441,7 @@ def make_assessment(current, spot=VENICE):
 
     # Decision states:
     # YEW! = good surf
-    # MID  = surfable, but compromised
+    # GO   = worth surfing, even if conditions are imperfect
     # NAH  = outside current comfort/safety envelope
 
     if wind_speed_kt is not None and wind_speed_kt >= 22:
@@ -476,13 +476,19 @@ def make_assessment(current, spot=VENICE):
         status = "NAH"
 
     elif wind_speed_kt is None or wind_direction is None:
-        status = "MID"
+        status = "GO"
 
-    elif score >= 75:
+    elif (
+        score >= 75
+        and not (
+            wind_quality == "ONSHORE"
+            and wind_speed_kt > 3
+        )
+    ):
         status = "YEW!"
 
     else:
-        status = "MID"
+        status = "GO"
 
     # Explanation
 
@@ -529,7 +535,7 @@ def make_assessment(current, spot=VENICE):
                 "Conditions are outside your current comfort range."
             )
 
-    elif status == "MID":
+    elif status == "GO":
         if wind_speed_kt is None or wind_direction is None:
             reason = "Wind data is currently unavailable."
             reason_candidates = None
@@ -644,7 +650,7 @@ def make_assessment(current, spot=VENICE):
 
 def calculate_window(data, current_status, sunset_status=None, spot=VENICE):
 
-    if current_status not in ("YEW!", "MID"):
+    if current_status not in ("YEW!", "GO"):
         return None
 
     daylight_minutes = None
@@ -749,7 +755,7 @@ def calculate_window(data, current_status, sunset_status=None, spot=VENICE):
 
         future_assessment = make_assessment(future, spot)
 
-        if future_assessment.get("status") not in ("YEW!", "MID"):
+        if future_assessment.get("status") not in ("YEW!", "GO"):
             break
 
         hours += 1
@@ -1438,7 +1444,7 @@ def get_session_forecast(data, spot, session_mode):
 
     status_rank = {
         "YEW!": 3,
-        "MID": 2,
+        "GO": 2,
         "NAH": 1,
         "ZZZ": 0,
     }
@@ -1458,8 +1464,8 @@ def get_session_forecast(data, spot, session_mode):
 
     if status == "YEW!":
         outlook = "LOOKING GOOD"
-    elif status == "MID":
-        outlook = "LOOKING MID"
+    elif status == "GO":
+        outlook = "LOOKING GOOD"
     elif status == "NAH":
         outlook = "LOOKING NAH"
     else:
@@ -1649,7 +1655,7 @@ def get_dawn_patrol_forecast(data, spot=VENICE):
     elif assessment["status"] == "YEW!":
         outlook = "LOOKING GOOD"
     else:
-        outlook = "LOOKING MID"
+        outlook = "LOOKING GOOD"
 
     return {
         "time": sunrise_dt.strftime("%-I:%M %p"),
