@@ -1147,6 +1147,275 @@ def get_is_daylight(data):
     return 1 if sunrise_dt <= now < sunset_dt else 0
 
 
+def get_session_mode(data):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    pacific = ZoneInfo("America/Los_Angeles")
+    now = datetime.now(pacific)
+
+    is_day = get_is_daylight(data)
+    sunset_status = get_sunset_status(data)
+
+    sunset_time = sunset_status.get("sunset")
+    sunset_minutes = sunset_status.get("minutes_remaining")
+
+    # After dark, the next relevant session is dawn patrol.
+    if (
+        is_day == 0
+        or (
+            sunset_time is not None
+            and sunset_minutes == 0
+        )
+    ):
+        return {
+            "mode": "DAWN",
+            "label": "DAWN PATROL",
+            "start_hour": None,
+            "end_hour": None,
+        }
+
+    weekday = now.weekday() < 5
+    hour = now.hour
+
+    # Weekday lunch window only.
+    if weekday and 11 <= hour < 14:
+        return {
+            "mode": "LUNCH",
+            "label": "LUNCH BREAK",
+            "start_hour": 11,
+            "end_hour": 14,
+        }
+
+    # Sunset Sesh activates for the final two hours of daylight,
+    # regardless of weekday/weekend or season.
+    if (
+        sunset_minutes is not None
+        and 0 < sunset_minutes <= 120
+    ):
+        return {
+            "mode": "SUNSET",
+            "label": "SUNSET SESH",
+            "start_hour": None,
+            "end_hour": None,
+            "sunset": sunset_time,
+        }
+
+    return {
+        "mode": "LIVE",
+        "label": None,
+        "start_hour": None,
+        "end_hour": None,
+    }
+
+def get_session_forecast(data, spot, session_mode):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    mode = session_mode.get("mode")
+
+    if mode not in ("LUNCH", "SUNSET"):
+        return None
+
+    hourly = data.get("hourly", {})
+    wind_hourly = data.get("wind_hourly", {})
+
+    marine_times = hourly.get("time", [])
+    wind_times = wind_hourly.get("time", [])
+
+    if not marine_times or not wind_times:
+        return None
+
+    wind_index = {
+        timestamp: index
+        for index, timestamp in enumerate(wind_times)
+    }
+
+    pacific = ZoneInfo("America/Los_Angeles")
+    now = datetime.now(pacific)
+
+    sunset_dt = None
+
+    if mode == "SUNSET":
+        daily = data.get("weather_daily", {})
+
+        for sunset in daily.get("sunset", []):
+            try:
+                candidate = datetime.fromisoformat(sunset)
+                candidate = candidate.replace(tzinfo=pacific)
+            except ValueError:
+                continue
+
+            if candidate.date() == now.date():
+                sunset_dt = candidate
+                break
+
+        if sunset_dt is None:
+            return None
+
+    def value_at(values, index):
+        if index < len(values):
+            return values[index]
+        return None
+
+    candidates = []
+
+    for index, timestamp in enumerate(marine_times):
+        if timestamp not in wind_index:
+            continue
+
+        try:
+            forecast_dt = datetime.fromisoformat(timestamp)
+            forecast_dt = forecast_dt.replace(tzinfo=pacific)
+        except ValueError:
+            continue
+
+        if forecast_dt.date() != now.date():
+            continue
+
+        # Only evaluate the remaining part of the active session.
+        if forecast_dt.hour < now.hour:
+            continue
+
+        if mode == "LUNCH":
+            if forecast_dt.hour < 11 or forecast_dt.hour >= 14:
+                continue
+
+        if mode == "SUNSET":
+            if forecast_dt >= sunset_dt:
+                continue
+
+        wind_i = wind_index[timestamp]
+
+        future = {
+            "wave_height": value_at(
+                hourly.get("wave_height", []),
+                index
+            ),
+            "wave_direction": value_at(
+                hourly.get("wave_direction", []),
+                index
+            ),
+            "swell_wave_height": value_at(
+                hourly.get("swell_wave_height", []),
+                index
+            ),
+            "swell_wave_direction": value_at(
+                hourly.get("swell_wave_direction", []),
+                index
+            ),
+            "swell_wave_period": value_at(
+                hourly.get("swell_wave_period", []),
+                index
+            ),
+            "secondary_swell_wave_height": value_at(
+                hourly.get("secondary_swell_wave_height", []),
+                index
+            ),
+            "secondary_swell_wave_direction": value_at(
+                hourly.get("secondary_swell_wave_direction", []),
+                index
+            ),
+            "secondary_swell_wave_period": value_at(
+                hourly.get("secondary_swell_wave_period", []),
+                index
+            ),
+            "tertiary_swell_wave_height": value_at(
+                hourly.get("tertiary_swell_wave_height", []),
+                index
+            ),
+            "tertiary_swell_wave_direction": value_at(
+                hourly.get("tertiary_swell_wave_direction", []),
+                index
+            ),
+            "tertiary_swell_wave_period": value_at(
+                hourly.get("tertiary_swell_wave_period", []),
+                index
+            ),
+            "wind_speed_10m": value_at(
+                wind_hourly.get("wind_speed_10m", []),
+                wind_i
+            ),
+            "wind_direction_10m": value_at(
+                wind_hourly.get("wind_direction_10m", []),
+                wind_i
+            ),
+            "is_day": value_at(
+                wind_hourly.get("is_day", []),
+                wind_i
+            ),
+        }
+
+        assessment = make_assessment(future, spot)
+
+        candidates.append({
+            "time": forecast_dt,
+            "assessment": assessment,
+        })
+
+    if not candidates:
+        return None
+
+    status_rank = {
+        "YEW!": 3,
+        "MID": 2,
+        "NAH": 1,
+        "ZZZ": 0,
+    }
+
+    best = max(
+        candidates,
+        key=lambda item: (
+            status_rank.get(
+                item["assessment"].get("status"),
+                0
+            ),
+            item["assessment"].get("score", 0),
+        )
+    )
+
+    status = best["assessment"].get("status")
+
+    # Sunset Sesh should not advertise YEW! when there is
+    # barely enough daylight left to make the session happen.
+    if mode == "SUNSET":
+        sunset_status = get_sunset_status(data)
+        minutes_remaining = sunset_status.get(
+            "minutes_remaining"
+        )
+
+        if (
+            minutes_remaining is not None
+            and minutes_remaining < 30
+            and status == "YEW!"
+        ):
+            best["assessment"]["status"] = "MID"
+            best["assessment"]["reason"] = (
+                "Sunset is close. Only "
+                + str(minutes_remaining)
+                + " minutes of daylight remain."
+            )
+            status = "MID"
+
+    if status == "YEW!":
+        outlook = "LOOKING GOOD"
+    elif status == "MID":
+        outlook = "LOOKING MID"
+    elif status == "NAH":
+        outlook = "LOOKING NAH"
+    else:
+        outlook = "UNAVAILABLE"
+
+    return {
+        "mode": mode,
+        "label": session_mode.get("label"),
+        "outlook": outlook,
+        "best_time": best["time"].strftime("%-I:%M %p"),
+        "assessment": best["assessment"],
+        "sunset": session_mode.get("sunset"),
+    }
+
+
 def get_sunset_status(data):
     from datetime import datetime
     from zoneinfo import ZoneInfo
@@ -1390,6 +1659,15 @@ def marine():
     dawn_patrol = get_next_sunrise(data)
     dawn_forecast = get_dawn_patrol_forecast(data, spot)
     sunset_status = get_sunset_status(data)
+
+    session_mode = get_session_mode(data)
+
+    session_forecast = get_session_forecast(
+        data,
+        spot,
+        session_mode
+    )
+
     rain_lockout = get_rain_lockout(data)
 
     if (
@@ -1437,6 +1715,8 @@ def marine():
         "dawn_patrol": dawn_patrol,
         "dawn_forecast": dawn_forecast,
         "sunset": sunset_status,
+        "session_mode": session_mode,
+        "session_forecast": session_forecast,
         "rain_lockout": rain_lockout,
         "window": window,
         "tide": tide,
