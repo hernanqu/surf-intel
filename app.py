@@ -1456,25 +1456,6 @@ def get_session_forecast(data, spot, session_mode):
 
     status = best["assessment"].get("status")
 
-    # Sunset Sesh should not advertise YEW! when there is
-    # barely enough daylight left to make the session happen.
-    if mode == "SUNSET":
-        sunset_status = get_sunset_status(data)
-        minutes_remaining = sunset_status.get(
-            "minutes_remaining"
-        )
-
-        if (
-            minutes_remaining is not None
-            and minutes_remaining < 30
-            and status == "YEW!"
-        ):
-            best["assessment"]["status"] = "MID"
-            best["assessment"]["reason"] = (
-                "Limited daylight remaining."
-            )
-            status = "MID"
-
     if status == "YEW!":
         outlook = "LOOKING GOOD"
     elif status == "MID":
@@ -1750,17 +1731,6 @@ def marine():
         assessment["reason"] = (
             "Recent rain. Water quality risk. "
             "Safe after: " + rain_lockout["safe_after"] + "."
-        )
-
-    if (
-        assessment["status"] != "NAH"
-        and current.get("is_day") == 1
-        and sunset_status["minutes_remaining"] is not None
-        and sunset_status["minutes_remaining"] < 30
-    ):
-        assessment["status"] = "MID"
-        assessment["reason"] = (
-            "Limited daylight remaining."
         )
 
     window = calculate_window(

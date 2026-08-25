@@ -1024,23 +1024,7 @@ function dawnReason(data, assessment) {
 
 function renderSpot(panel, data) {
 
-    const sessionMode =
-        data.session_mode &&
-        data.session_mode.mode;
-
-    const sessionForecast =
-        data.session_forecast;
-
-    const hasActiveSession =
-        (sessionMode === "LUNCH" ||
-         sessionMode === "SUNSET") &&
-        sessionForecast &&
-        sessionForecast.assessment;
-
-    const assessment = hasActiveSession
-        ? sessionForecast.assessment
-        : (data.assessment || {});
-
+    const assessment = data.assessment || {};
     const status = assessment.status || "ERROR";
 
     panel.classList.remove(
@@ -1079,34 +1063,15 @@ function renderSpot(panel, data) {
         panel.querySelector(".window");
 
     summaryStatus.textContent = status;
+
     summaryStatus.className =
         "spot-summary-status-value " +
         status.toLowerCase().replace("!", "");
 
-    if (hasActiveSession) {
-        const sessionAssessment =
-            sessionForecast.assessment;
+    summaryReason.textContent =
+        dawnReason(data, assessment);
 
-        summaryReason.textContent =
-            sessionForecast.outlook +
-            " · " +
-            sessionAssessment.wave_height_range +
-            " · " +
-            sessionAssessment.wave_period_s +
-            " SEC · " +
-            sessionAssessment.wind_label +
-            " " +
-            sessionAssessment.wind_speed_kt +
-            " KT " +
-            sessionAssessment.wind_compass;
-    } else {
-        summaryReason.textContent =
-            dawnReason(data, assessment);
-    }
-
-    if (hasActiveSession) {
-        summaryWindow.textContent = "";
-    } else if (
+    if (
         (status === "YEW!" || status === "MID") &&
         data.window
     ) {
@@ -1130,76 +1095,47 @@ function renderSpot(panel, data) {
         statusElement.className = "status error";
     }
 
-
     const apiIsDay =
         data.current &&
         data.current.is_day;
 
-    let isNight;
+    const isNight = apiIsDay === 0;
 
-    // The backend session mode uses local solar timing and is
-    // authoritative for the page's night state.
-    if (sessionMode === "DAWN") {
-        isNight = true;
-    } else if (apiIsDay === 0) {
-        isNight = true;
-    } else if (apiIsDay === 1) {
-        isNight = false;
-    } else {
-        isNight = false;
-    }
-
-    const surfMessage = document.getElementById("surfMessage");
-    const dawnMeta = document.getElementById("dawnMeta");
+    const surfMessage =
+        document.getElementById("surfMessage");
 
     if (surfMessage) {
         if (isNight) {
             surfMessage.textContent = "HASTA MAÑANA.";
-            surfMessage.style.visibility = "visible";
-        } else if (
-            sessionMode === "LUNCH" ||
-            sessionMode === "SUNSET"
-        ) {
-            surfMessage.textContent = "HASTA MAÑANA.";
-            surfMessage.style.visibility = "hidden";
+            surfMessage.style.display = "";
         } else {
-            surfMessage.textContent =
-                "IT WAS FIRING AN HOUR AGO.";
-            surfMessage.style.visibility = "visible";
+            surfMessage.textContent = "";
+            surfMessage.style.display = "none";
         }
     }
+
+    const dawnMeta = document.getElementById("dawnMeta");
 
     if (
         dawnMeta &&
         data.spot &&
         data.spot.name === "Venice South"
     ) {
-        if (
-            isNight &&
-            data.dawn_forecast
-        ) {
+        if (isNight && data.dawn_forecast) {
             dawnMeta.innerHTML =
                 "DAWN PATROL " +
                 '<span class="page-meta-divider">·</span> ' +
                 data.dawn_forecast.time;
             dawnMeta.style.display = "";
         } else if (
-            sessionMode === "LUNCH"
+            !isNight &&
+            data.sunset &&
+            data.sunset.sunset
         ) {
             dawnMeta.innerHTML =
-                "LUNCH BREAK " +
+                "SUNSET " +
                 '<span class="page-meta-divider">·</span> ' +
-                "11 AM–2 PM";
-            dawnMeta.style.display = "";
-        } else if (
-            sessionMode === "SUNSET" &&
-            data.session_mode.sunset
-        ) {
-            dawnMeta.innerHTML =
-                "SUNSET SESH " +
-                '<span class="page-meta-divider">·</span> ' +
-                "UNTIL " +
-                data.session_mode.sunset;
+                data.sunset.sunset;
             dawnMeta.style.display = "";
         } else {
             dawnMeta.textContent = "";
