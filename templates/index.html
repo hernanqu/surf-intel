@@ -1119,6 +1119,8 @@ function parseClockToday(clockText) {
 function updateSkyBackground(data) {
 
     const body = document.body;
+    const themeColor =
+        document.getElementById("themeColor");
 
     body.classList.remove(
         "sky-night",
@@ -1163,6 +1165,9 @@ function updateSkyBackground(data) {
 
             if (minutesToSunset <= 75) {
                 body.classList.add("sky-sunset");
+                if (themeColor) {
+                    themeColor.content = "#34394f";
+                }
                 return;
             }
         }
@@ -1173,10 +1178,16 @@ function updateSkyBackground(data) {
          */
         if (now.getHours() < 8) {
             body.classList.add("sky-dawn");
+            if (themeColor) {
+                themeColor.content = "#596486";
+            }
             return;
         }
 
         body.classList.add("sky-day");
+        if (themeColor) {
+            themeColor.content = "#111720";
+        }
         return;
     }
 
@@ -1197,6 +1208,9 @@ function updateSkyBackground(data) {
             minutesToDawn <= 45
         ) {
             body.classList.add("sky-dawn");
+            if (themeColor) {
+                themeColor.content = "#596486";
+            }
             return;
         }
 
@@ -1205,11 +1219,17 @@ function updateSkyBackground(data) {
             minutesToDawn <= 105
         ) {
             body.classList.add("sky-predawn");
+            if (themeColor) {
+                themeColor.content = "#111426";
+            }
             return;
         }
     }
 
     body.classList.add("sky-night");
+    if (themeColor) {
+        themeColor.content = "#05060d";
+    }
 }
 
 
