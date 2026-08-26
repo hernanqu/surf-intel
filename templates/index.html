@@ -148,7 +148,10 @@
 
         .page {
             min-height: 100vh;
-            padding: 34px 28px 56px;
+            padding:
+                calc(34px + env(safe-area-inset-top))
+                28px
+                calc(56px + env(safe-area-inset-bottom));
         }
 
         .header {
@@ -348,7 +351,10 @@
 
         @media (max-width: 700px) {
             .page {
-                padding: 28px 22px 42px;
+                padding:
+                    calc(28px + env(safe-area-inset-top))
+                    22px
+                    calc(42px + env(safe-area-inset-bottom));
             }
 
             .brand {
