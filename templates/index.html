@@ -16,11 +16,97 @@
         }
 
         :root {
-            --background: #000000;
+            --background:
+                linear-gradient(
+                    180deg,
+                    #111111 0%,
+                    #050505 55%,
+                    #000000 100%
+                );
             --text: #f5f5f5;
             --muted: #6d6d6d;
             --divider: #262626;
             --accent: #666666;
+        }
+
+        body.sky-night {
+            --background:
+                radial-gradient(
+                    ellipse at 50% 100%,
+                    rgba(57, 43, 91, 0.24) 0%,
+                    transparent 58%
+                ),
+                linear-gradient(
+                    180deg,
+                    #05060d 0%,
+                    #080711 50%,
+                    #020203 100%
+                );
+        }
+
+        body.sky-predawn {
+            --background:
+                radial-gradient(
+                    ellipse at 50% 100%,
+                    rgba(165, 112, 188, 0.34) 0%,
+                    rgba(82, 74, 140, 0.18) 38%,
+                    transparent 68%
+                ),
+                linear-gradient(
+                    180deg,
+                    #111426 0%,
+                    #242343 48%,
+                    #352b48 100%
+                );
+        }
+
+        body.sky-dawn {
+            --background:
+                radial-gradient(
+                    ellipse at 50% 100%,
+                    rgba(255, 184, 200, 0.55) 0%,
+                    rgba(207, 178, 231, 0.28) 35%,
+                    transparent 65%
+                ),
+                linear-gradient(
+                    180deg,
+                    #596486 0%,
+                    #776b91 38%,
+                    #a16f86 70%,
+                    #ad7968 100%
+                );
+        }
+
+        body.sky-day {
+            --background:
+                radial-gradient(
+                    ellipse at 50% 0%,
+                    rgba(77, 101, 141, 0.20) 0%,
+                    transparent 64%
+                ),
+                linear-gradient(
+                    180deg,
+                    #111720 0%,
+                    #0c1118 50%,
+                    #050607 100%
+                );
+        }
+
+        body.sky-sunset {
+            --background:
+                radial-gradient(
+                    ellipse at 50% 100%,
+                    rgba(255, 169, 169, 0.46) 0%,
+                    rgba(195, 137, 197, 0.30) 34%,
+                    transparent 67%
+                ),
+                linear-gradient(
+                    180deg,
+                    #33394f 0%,
+                    #594d68 42%,
+                    #8a5e72 72%,
+                    #9d6a5a 100%
+                );
         }
 
         body.status-go {
@@ -56,6 +142,8 @@
 
         body {
             min-height: 100vh;
+            background-attachment: fixed;
+            transition: background 1.4s ease;
         }
 
         .page {
@@ -1001,6 +1089,139 @@ function updateTimes() {
         }
 
     });
+}
+
+
+function parseClockToday(clockText) {
+
+    if (!clockText) {
+        return null;
+    }
+
+    const match = clockText
+        .trim()
+        .match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+
+    if (!match) {
+        return null;
+    }
+
+    let hour = Number(match[1]);
+    const minute = Number(match[2]);
+    const period = match[3].toUpperCase();
+
+    if (period === "PM" && hour !== 12) {
+        hour += 12;
+    }
+
+    if (period === "AM" && hour === 12) {
+        hour = 0;
+    }
+
+    const result = new Date();
+
+    result.setHours(hour, minute, 0, 0);
+
+    return result;
+}
+
+
+function updateSkyBackground(data) {
+
+    const body = document.body;
+
+    body.classList.remove(
+        "sky-night",
+        "sky-predawn",
+        "sky-dawn",
+        "sky-day",
+        "sky-sunset"
+    );
+
+    const now = new Date();
+
+    updateSkyBackground(data);
+
+    const apiIsDay =
+        data.current &&
+        data.current.is_day;
+
+    const isNight = apiIsDay === 0;
+
+    const sunset =
+        data.sunset &&
+        data.sunset.sunset
+            ? parseClockToday(data.sunset.sunset)
+            : null;
+
+    const dawn =
+        data.dawn_forecast &&
+        data.dawn_forecast.time
+            ? parseClockToday(data.dawn_forecast.time)
+            : null;
+
+    /*
+     * DAYLIGHT
+     *
+     * Sunset atmosphere begins about 75 minutes
+     * before actual sunset.
+     */
+    if (!isNight) {
+
+        if (sunset) {
+
+            const minutesToSunset =
+                (sunset - now) / 60000;
+
+            if (minutesToSunset <= 75) {
+                body.classList.add("sky-sunset");
+                return;
+            }
+        }
+
+        /*
+         * For roughly the first hour after dawn,
+         * retain the dawn palette.
+         */
+        if (now.getHours() < 8) {
+            body.classList.add("sky-dawn");
+            return;
+        }
+
+        body.classList.add("sky-day");
+        return;
+    }
+
+    /*
+     * NIGHT
+     *
+     * Before noon while is_day === 0 means we're
+     * approaching today's dawn. Evening darkness
+     * remains in the night palette.
+     */
+    if (now.getHours() < 12 && dawn) {
+
+        const minutesToDawn =
+            (dawn - now) / 60000;
+
+        if (
+            minutesToDawn >= 0 &&
+            minutesToDawn <= 45
+        ) {
+            body.classList.add("sky-dawn");
+            return;
+        }
+
+        if (
+            minutesToDawn > 45 &&
+            minutesToDawn <= 105
+        ) {
+            body.classList.add("sky-predawn");
+            return;
+        }
+    }
+
+    body.classList.add("sky-night");
 }
 
 
