@@ -94,18 +94,12 @@
 
         body.sky-sunset {
             --background:
-                radial-gradient(
-                    ellipse at 50% 100%,
-                    rgba(255, 169, 169, 0.46) 0%,
-                    rgba(195, 137, 197, 0.30) 34%,
-                    transparent 67%
-                ),
                 linear-gradient(
                     180deg,
                     #34394f 0%,
-                    #34394f 12%,
-                    #554c68 42%,
-                    #886073 72%,
+                    #403d58 20%,
+                    #5c4d6c 45%,
+                    #855e78 72%,
                     #a66f62 100%
                 );
         }
@@ -148,10 +142,7 @@
 
         .page {
             min-height: 100vh;
-            padding:
-                calc(34px + env(safe-area-inset-top))
-                28px
-                calc(56px + env(safe-area-inset-bottom));
+            padding: 34px 28px 56px;
         }
 
         .header {
@@ -351,10 +342,7 @@
 
         @media (max-width: 700px) {
             .page {
-                padding:
-                    calc(28px + env(safe-area-inset-top))
-                    22px
-                    calc(42px + env(safe-area-inset-bottom));
+                padding: 28px 22px 42px;
             }
 
             .brand {
