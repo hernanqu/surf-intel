@@ -661,7 +661,7 @@
             line-height: 1.4;
             letter-spacing: 0.07em;
             text-transform: uppercase;
-            color: var(--muted);
+            color: #fff;
         }
 
         @media (max-width: 700px) {
@@ -689,9 +689,7 @@
                     <span id="pageTimestamp">--</span>
                 </div>
                 <div class="dawn-meta" id="dawnMeta" style="display:none;"></div>
-                <div class="surf-message" id="surfMessage">
-                    IT WAS FIRING AN HOUR AGO.
-                </div>
+                <div class="surf-message" id="surfMessage"></div>
             </div>
 
             <div class="spot-list">
@@ -1132,8 +1130,18 @@ function renderSpot(panel, data) {
         if (isNight) {
             surfMessage.textContent = "HASTA MAÑANA.";
         } else {
+            const surfSchedule = [
+                "SUN   REST / OPTIONAL",
+                "MON   SURF SESH · 45–60",
+                "TUE   SURF SESH · 45–60",
+                "WED   REST",
+                "THU   SURF SESH · 45–60",
+                "FRI   SURF SESH · 45–60",
+                "SAT   SURF SESH · 60–90"
+            ];
+
             surfMessage.textContent =
-                "IT WAS FIRING AN HOUR AGO.";
+                surfSchedule[new Date().getDay()];
         }
 
         surfMessage.style.display = "";
