@@ -664,7 +664,7 @@ def calculate_window(data, current_status, sunset_status=None, spot=VENICE):
         daylight_minutes is not None
         and daylight_minutes < 30
     ):
-        return None
+        return "<30 MIN"
 
     hourly = data.get("hourly", {})
     wind_hourly = data.get("wind_hourly", {})
