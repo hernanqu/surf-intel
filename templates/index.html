@@ -683,7 +683,7 @@
         <section class="intel">
 
             <div class="page-header">
-                <div class="page-meta">
+                <div class="page-meta" id="pageMeta">
                     <span>SURF INTEL</span>
                     <span class="page-meta-divider">·</span>
                     <span id="pageTimestamp">--</span>
@@ -1127,24 +1127,27 @@ function renderSpot(panel, data) {
         document.getElementById("surfMessage");
 
     if (surfMessage) {
-        if (isNight) {
-            surfMessage.textContent = "HASTA MAÑANA.";
-        } else {
-            const surfSchedule = [
-                "SUN   REST / OPTIONAL",
-                "MON   SURF SESH · 45–60",
-                "TUE   SURF SESH · 45–60",
-                "WED   REST",
-                "THU   SURF SESH · 45–60",
-                "FRI   SURF SESH · 45–60",
-                "SAT   SURF SESH · 60–90"
-            ];
+        const surfSchedule = [
+            "SUN   FULL REST",
+            "MON   SURF SESH · 45–60",
+            "TUE   SURF SESH · 45–60",
+            "WED   ACTIVE REST · STRAND WALK",
+            "THU   SURF SESH · 45–60",
+            "FRI   SURF SESH · 45–60",
+            "SAT   SURF SESH · 60–90"
+        ];
 
-            surfMessage.textContent =
-                surfSchedule[new Date().getDay()];
-        }
+        const today = new Date().getDay();
+        const scheduleDay = isNight ? (today + 1) % 7 : today;
 
+        surfMessage.textContent = surfSchedule[scheduleDay];
         surfMessage.style.display = "";
+    }
+
+    const pageMeta = document.getElementById("pageMeta");
+
+    if (pageMeta) {
+        pageMeta.style.display = isNight ? "none" : "";
     }
 
     const dawnMeta = document.getElementById("dawnMeta");
