@@ -1047,7 +1047,14 @@ function dawnReason(data, assessment) {
 function renderSpot(panel, data) {
 
     const assessment = data.assessment || {};
-    const status = assessment.status || "ERROR";
+    const apiIsDay =
+        data.current &&
+        data.current.is_day;
+
+    const isNight = apiIsDay === 0;
+
+    const status =
+        isNight ? "ZZZ" : (assessment.status || "ERROR");
 
     panel.classList.remove(
         "status-yewww",
@@ -1094,6 +1101,7 @@ function renderSpot(panel, data) {
         dawnReason(data, assessment);
 
     if (
+        !isNight &&
         (status === "YEW!" || status === "GO") &&
         data.window
     ) {
@@ -1116,12 +1124,6 @@ function renderSpot(panel, data) {
     } else {
         statusElement.className = "status error";
     }
-
-    const apiIsDay =
-        data.current &&
-        data.current.is_day;
-
-    const isNight = apiIsDay === 0;
 
     const surfMessage =
         document.getElementById("surfMessage");
@@ -1198,6 +1200,7 @@ function renderSpot(panel, data) {
 
 
     if (
+        !isNight &&
         (status === "YEW!" || status === "GO") &&
         data.window
     ) {
