@@ -665,8 +665,9 @@
         }
 
         @media (max-width: 700px) {
+            .dawn-meta,
             .surf-message {
-                font-size: 11px;
+                font-size: 15px;
             }
         }
 
@@ -1139,8 +1140,16 @@ function renderSpot(panel, data) {
             "SAT   SURF SESH · PADDLE OUT"
         ];
 
-        const today = new Date().getDay();
-        const scheduleDay = isNight ? (today + 1) % 7 : today;
+        const now = new Date();
+        const today = now.getDay();
+        const hour = now.getHours();
+
+        // Before the morning surf session, Dawn Patrol still belongs
+        // to today's session. Only advance after the day's session.
+        const scheduleDay =
+            isNight && hour >= 12
+                ? (today + 1) % 7
+                : today;
 
         surfMessage.textContent = surfSchedule[scheduleDay];
         surfMessage.style.display = "";
