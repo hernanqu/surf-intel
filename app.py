@@ -75,6 +75,15 @@ SPOTS = {
             "onshore": [(210, 300)],
         },
     },
+    "el_porto": {
+        "name": "El Porto 35th",
+        "latitude": 33.898814,
+        "longitude": -118.420983,
+        "wind_profile": {
+            "offshore": [(45, 135)],
+            "onshore": [(225, 315)],
+        },
+    },
 }
 
 # Keep Venice as the default while multi-spot routing is added.
