@@ -745,13 +745,8 @@
                             </div>
 
                             <div class="condition">
-                                <div class="condition-label">PERIOD</div>
-                                <div class="condition-value wave-period">--</div>
-                            </div>
-
-                            <div class="condition">
-                                <div class="condition-label">DIRECTION</div>
-                                <div class="condition-value wave-direction">--</div>
+                                <div class="condition-label">SWELL</div>
+                                <div class="condition-value swell-components">--</div>
                             </div>
 
                             <div class="condition">
@@ -826,13 +821,8 @@
                             </div>
 
                             <div class="condition">
-                                <div class="condition-label">PERIOD</div>
-                                <div class="condition-value wave-period">--</div>
-                            </div>
-
-                            <div class="condition">
-                                <div class="condition-label">DIRECTION</div>
-                                <div class="condition-value wave-direction">--</div>
+                                <div class="condition-label">SWELL</div>
+                                <div class="condition-value swell-components">--</div>
                             </div>
 
                             <div class="condition">
@@ -907,13 +897,8 @@
                             </div>
 
                             <div class="condition">
-                                <div class="condition-label">PERIOD</div>
-                                <div class="condition-value wave-period">--</div>
-                            </div>
-
-                            <div class="condition">
-                                <div class="condition-label">DIRECTION</div>
-                                <div class="condition-value wave-direction">--</div>
+                                <div class="condition-label">SWELL</div>
+                                <div class="condition-value swell-components">--</div>
                             </div>
 
                             <div class="condition">
@@ -987,13 +972,8 @@
                             </div>
 
                             <div class="condition">
-                                <div class="condition-label">PERIOD</div>
-                                <div class="condition-value wave-period">--</div>
-                            </div>
-
-                            <div class="condition">
-                                <div class="condition-label">DIRECTION</div>
-                                <div class="condition-value wave-direction">--</div>
+                                <div class="condition-label">SWELL</div>
+                                <div class="condition-value swell-components">--</div>
                             </div>
 
                             <div class="condition">
@@ -1104,8 +1084,14 @@ function dawnReason(data, assessment) {
             " · " +
             dawn.assessment.wave_height_range +
             " · " +
-            dawn.assessment.wave_period_s +
-            " SEC · " +
+            (
+                (dawn.assessment.swell_components || []).length
+                    ? dawn.assessment.swell_components
+                        .map(component => component.period_s + "S")
+                        .join(" + ")
+                    : dawn.assessment.wave_period_s + " SEC"
+            ) +
+            " · " +
             dawn.assessment.wind_label +
             " " +
             dawn.assessment.wind_speed_kt +
@@ -1313,19 +1299,32 @@ function renderSpot(panel, data) {
             : "--";
 
 
-    panel.querySelector(".wave-period").textContent =
-        assessment.swell_period_s != null
-            ? assessment.swell_period_s + " SEC"
-            : "--";
+    const swellElement = panel.querySelector(".swell-components");
+    const swellComponents = assessment.swell_components || [];
 
+    if (swellComponents.length) {
+        swellElement.innerHTML = swellComponents
+            .map(component => {
+                const direction =
+                    component.direction != null
+                        ? component.compass +
+                          " " +
+                          component.direction +
+                          "°"
+                        : "--";
 
-    panel.querySelector(".wave-direction").textContent =
-        assessment.swell_direction != null
-            ? assessment.swell_compass +
-              " " +
-              assessment.swell_direction +
-              "°"
-            : "--";
+                return (
+                    component.height_ft +
+                    " FT · " +
+                    component.period_s +
+                    "S · " +
+                    direction
+                );
+            })
+            .join("<br>");
+    } else {
+        swellElement.textContent = "--";
+    }
 
 
     panel.querySelector(".wind-condition").textContent =

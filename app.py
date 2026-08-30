@@ -14,6 +14,10 @@ MARINE_CACHE = {
         "data": None,
         "timestamp": 0,
     },
+    "el_porto": {
+        "data": None,
+        "timestamp": 0,
+    },
     "broad": {
         "data": None,
         "timestamp": 0,
@@ -25,6 +29,7 @@ MARINE_CACHE = {
 WEATHER_CACHE = {
     "venice": {"data": None, "timestamp": 0},
     "venice_south": {"data": None, "timestamp": 0},
+    "el_porto": {"data": None, "timestamp": 0},
     "broad": {"data": None, "timestamp": 0},
 }
 
@@ -277,6 +282,55 @@ def score_combination(height_ft, period_s):
 
 
 
+def get_swell_components(current):
+    components = [
+        {
+            "name": "primary",
+            "height_m": current.get("swell_wave_height"),
+            "period_s": current.get("swell_wave_period"),
+            "direction": current.get("swell_wave_direction"),
+        },
+        {
+            "name": "secondary",
+            "height_m": current.get("secondary_swell_wave_height"),
+            "period_s": current.get("secondary_swell_wave_period"),
+            "direction": current.get("secondary_swell_wave_direction"),
+        },
+        {
+            "name": "tertiary",
+            "height_m": current.get("tertiary_swell_wave_height"),
+            "period_s": current.get("tertiary_swell_wave_period"),
+            "direction": current.get("tertiary_swell_wave_direction"),
+        },
+    ]
+
+    valid = []
+
+    for component in components:
+        height_m = component["height_m"]
+        period_s = component["period_s"]
+
+        if (
+            height_m is None
+            or period_s is None
+            or height_m <= 0
+            or period_s <= 0
+        ):
+            continue
+
+        height_ft = meters_to_feet(height_m)
+
+        valid.append({
+            **component,
+            "height_ft": round(height_ft, 1),
+            "period_s": round(period_s, 1),
+            "compass": compass_direction(component["direction"]),
+            "energy_score": (height_m ** 2) * period_s,
+        })
+
+    return valid
+
+
 def select_relevant_swell(current):
     components = [
         {
@@ -346,6 +400,7 @@ def make_assessment(current, spot=VENICE):
 
     wave_direction = current.get("wave_direction")
 
+    swell_components = get_swell_components(current)
     relevant_swell = select_relevant_swell(current)
 
     swell_height_ft = meters_to_feet(
@@ -430,12 +485,37 @@ def make_assessment(current, spot=VENICE):
 
     size_score = score_wave_size(wave_height_ft)
 
-    period_score = score_period(wave_period_s)
+    if swell_components:
+        strongest_energy = max(
+            component["energy_score"]
+            for component in swell_components
+        )
 
-    combination_score = score_combination(
-        wave_height_ft,
-        wave_period_s
-    )
+        meaningful_swells = [
+            component
+            for component in swell_components
+            if component["energy_score"] >= strongest_energy * 0.50
+        ]
+
+        period_score = max(
+            score_period(component["period_s"])
+            for component in meaningful_swells
+        )
+
+        combination_score = max(
+            score_combination(
+                component["height_ft"],
+                component["period_s"]
+            )
+            for component in meaningful_swells
+        )
+    else:
+        meaningful_swells = []
+        period_score = score_period(wave_period_s)
+        combination_score = score_combination(
+            wave_height_ft,
+            wave_period_s
+        )
 
     # Weighted score
 
@@ -459,19 +539,17 @@ def make_assessment(current, spot=VENICE):
     elif wave_height_ft is not None and wave_height_ft >= 7:
         status = "NAH"
 
-    elif (
-        swell_height_ft is not None
-        and wave_period_s is not None
-        and swell_height_ft >= 4
-        and wave_period_s >= 16
+    elif any(
+        component["height_ft"] >= 4
+        and component["period_s"] >= 16
+        for component in swell_components
     ):
         status = "NAH"
 
-    elif (
-        swell_height_ft is not None
-        and wave_period_s is not None
-        and swell_height_ft >= 3
-        and wave_period_s >= 18
+    elif any(
+        component["height_ft"] >= 3
+        and component["period_s"] >= 18
+        for component in swell_components
     ):
         status = "NAH"
 
@@ -515,13 +593,16 @@ def make_assessment(current, spot=VENICE):
                 "Surf size has crossed into a dangerous range."
             )
 
-        elif (
-            swell_height_ft is not None
-            and wave_period_s is not None
-            and (
-                (swell_height_ft >= 4 and wave_period_s >= 16)
-                or (swell_height_ft >= 3 and wave_period_s >= 18)
+        elif any(
+            (
+                component["height_ft"] >= 4
+                and component["period_s"] >= 16
             )
+            or (
+                component["height_ft"] >= 3
+                and component["period_s"] >= 18
+            )
+            for component in swell_components
         ):
             reason = (
                 "Long-period swell is creating more power "
@@ -563,8 +644,11 @@ def make_assessment(current, spot=VENICE):
 
         if (
             reason_candidates is not None
-            and wave_period_s is not None
-            and wave_period_s < 8
+            and meaningful_swells
+            and all(
+                component["period_s"] < 8
+                for component in meaningful_swells
+            )
         ):
             reason_candidates.append((
                 65,
@@ -646,6 +730,17 @@ def make_assessment(current, spot=VENICE):
         "swell_direction": swell_direction,
         "swell_compass": compass_direction(swell_direction),
         "swell_source": swell_source,
+
+        "swell_components": [
+            {
+                "name": component["name"],
+                "height_ft": component["height_ft"],
+                "period_s": component["period_s"],
+                "direction": component["direction"],
+                "compass": component["compass"],
+            }
+            for component in swell_components
+        ],
         "wave_compass": compass_direction(wave_direction),
         "size_score": size_score,
         "period_score": period_score,
