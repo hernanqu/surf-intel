@@ -531,6 +531,14 @@
             min-width: 0;
         }
 
+        .spot-summary-conditions {
+            display: block;
+            margin-top: 4px;
+            font-size: 0.9em;
+            letter-spacing: 0.04em;
+            opacity: 0.85;
+        }
+
         .spot-summary-reason {
             display: block;
             margin-top: 7px;
@@ -749,6 +757,7 @@
                             <span class="spot-summary-reason">
                                 Checking conditions...
                             </span>
+                            <span class="spot-summary-conditions"></span>
                         </span>
 
                         <span class="spot-summary-status">
@@ -830,6 +839,7 @@
                             <span class="spot-summary-reason">
                                 Checking conditions...
                             </span>
+                            <span class="spot-summary-conditions"></span>
                         </span>
 
                         <span class="spot-summary-status">
@@ -911,6 +921,7 @@
                             <span class="spot-summary-reason">
                                 Checking conditions...
                             </span>
+                            <span class="spot-summary-conditions"></span>
                         </span>
 
                         <span class="spot-summary-status">
@@ -991,6 +1002,7 @@
                             <span class="spot-summary-reason">
                                 Checking conditions...
                             </span>
+                            <span class="spot-summary-conditions"></span>
                         </span>
 
                         <span class="spot-summary-status">
@@ -1358,7 +1370,31 @@ function renderSpot(panel, data) {
     summaryReason.textContent =
         dawnReason(data, assessment);
 
-    if (
+    
+    const summaryConditions =
+        panel.querySelector(".spot-summary-conditions");
+
+    const summarySwells =
+        assessment.swell_components || [];
+
+    if (summaryConditions && !isNight) {
+        const periods = summarySwells
+            .slice(0, 2)
+            .map(component => component.period_s + "S")
+            .join(" / ");
+
+        const waveRange =
+            assessment.wave_height_range || "--";
+
+        summaryConditions.textContent =
+            periods
+                ? waveRange + " · " + periods
+                : waveRange;
+    } else if (summaryConditions) {
+        summaryConditions.textContent = "";
+    }
+
+if (
         !isNight &&
         (status === "YEW!" || status === "GO") &&
         data.window
