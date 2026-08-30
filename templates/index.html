@@ -1228,7 +1228,42 @@ function renderNwsHazards(data) {
 
     let expires = "";
 
-    if (alert.expires) {
+    const headlineEnd =
+        alert.headline &&
+        alert.headline.match(
+            /until ([A-Za-z]+) (\d{1,2}) at (\d{1,2}:\d{2})(AM|PM)/i
+        );
+
+    if (headlineEnd) {
+        const monthName = headlineEnd[1];
+        const day = Number(headlineEnd[2]);
+        const time = headlineEnd[3] + " " +
+            headlineEnd[4].toUpperCase();
+
+        const monthIndex = [
+            "JANUARY", "FEBRUARY", "MARCH",
+            "APRIL", "MAY", "JUNE",
+            "JULY", "AUGUST", "SEPTEMBER",
+            "OCTOBER", "NOVEMBER", "DECEMBER"
+        ].indexOf(monthName.toUpperCase());
+
+        const year = new Date().getFullYear();
+
+        const weekday = new Date(
+            year,
+            monthIndex,
+            day
+        ).toLocaleDateString(
+            "en-US",
+            { weekday: "short" }
+        ).toUpperCase();
+
+        expires =
+            "NWS · THROUGH " +
+            weekday +
+            " " +
+            time;
+    } else if (alert.expires) {
         const date = new Date(alert.expires);
 
         expires =
@@ -1586,13 +1621,24 @@ function highlightBestSpot(results) {
         return;
     }
 
-    const winnerNames =
-        candidates[0].panel.querySelectorAll(
-            ".spot-summary-name, .location-name"
+    const topScore =
+        candidates[0].assessment.score;
+
+    const winners =
+        candidates.filter(
+            candidate =>
+                candidate.assessment.score === topScore
         );
 
-    winnerNames.forEach(name => {
-        name.classList.add("best-spot");
+    winners.forEach(candidate => {
+        const winnerNames =
+            candidate.panel.querySelectorAll(
+                ".spot-summary-name, .location-name"
+            );
+
+        winnerNames.forEach(name => {
+            name.classList.add("best-spot");
+        });
     });
 }
 
