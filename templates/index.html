@@ -671,7 +671,12 @@
             }
         }
 
-    </style>
+    
+.best-spot {
+    color: #8FE3C2 !important;
+}
+
+</style>
 </head>
 
 <body>
@@ -1052,7 +1057,10 @@ function updateTimes() {
         pageTimestamp.textContent = time;
     }
 
-    panels.forEach(panel => {
+
+
+
+panels.forEach(panel => {
 
         const timeElement =
             panel.querySelector(".location-time");
@@ -1382,6 +1390,58 @@ function renderSpot(panel, data) {
 }
 
 
+function highlightBestSpot(results) {
+    panels.forEach(panel => {
+        const names = panel.querySelectorAll(".spot-summary-name, .location-name");
+        names.forEach(name => {
+            name.classList.remove("best-spot");
+        });
+    });
+
+    const candidates = results
+        .filter(Boolean)
+        .map(result => {
+            const { panel, data } = result;
+            const isNight =
+                data.current &&
+                data.current.is_day === 0;
+
+            const assessment =
+                isNight && data.dawn_forecast
+                    ? data.dawn_forecast.assessment
+                    : data.assessment;
+
+            return {
+                panel,
+                assessment
+            };
+        })
+        .filter(candidate =>
+            candidate.assessment &&
+            candidate.assessment.status !== "NAH" &&
+            candidate.assessment.score != null
+        )
+        .sort(
+            (a, b) =>
+                b.assessment.score -
+                a.assessment.score
+        );
+
+    if (!candidates.length) {
+        return;
+    }
+
+    const winnerNames =
+        candidates[0].panel.querySelectorAll(
+            ".spot-summary-name, .location-name"
+        );
+
+    winnerNames.forEach(name => {
+        name.classList.add("best-spot");
+    });
+}
+
+
 async function loadSpot(panel, forceRefresh = false) {
 
     const spotKey = panel.dataset.spotKey;
@@ -1412,6 +1472,8 @@ async function loadSpot(panel, forceRefresh = false) {
         const data = await response.json();
 
         renderSpot(panel, data);
+
+        return { panel, data };
 
     } catch (error) {
 
@@ -1480,11 +1542,13 @@ refreshAllButton.addEventListener(
         refreshAllButton.textContent = "REFRESHING";
 
         try {
-            await Promise.all(
+            const results = await Promise.all(
                 panels.map(
                     panel => loadSpot(panel, true)
                 )
             );
+
+            highlightBestSpot(results);
         } finally {
             refreshAllButton.disabled = false;
             refreshAllButton.textContent = "REFRESH";
@@ -1496,7 +1560,7 @@ refreshAllButton.addEventListener(
 // Load every spot concurrently.
 Promise.all(
     panels.map(panel => loadSpot(panel))
-);
+).then(highlightBestSpot);
 
 </script>
 
