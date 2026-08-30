@@ -33,6 +33,13 @@ WEATHER_CACHE = {
     "broad": {"data": None, "timestamp": 0},
 }
 
+ALERT_CACHE = {
+    "venice": {"data": None, "timestamp": 0},
+    "venice_south": {"data": None, "timestamp": 0},
+    "el_porto": {"data": None, "timestamp": 0},
+    "broad": {"data": None, "timestamp": 0},
+}
+
 CACHE_TTL = 600  # 10 minutes
 WEATHER_FALLBACK_TTL = 1800  # 30 minutes
 
@@ -55,6 +62,8 @@ SURFER = {
 SPOTS = {
     "venice": {
         "name": "Venice Breakwater",
+        "break_type": "BEACH BREAK / JETTY",
+        "nws_zone": "CAZ366",
         "latitude": 33.9832,
         "longitude": -118.4743,
         "wind_profile": {
@@ -64,6 +73,8 @@ SPOTS = {
     },
     "venice_south": {
         "name": "Venice South",
+        "break_type": "BEACH BREAK",
+        "nws_zone": "CAZ366",
         "latitude": 33.9746774,
         "longitude": -118.4649831,
         "wind_profile": {
@@ -73,6 +84,8 @@ SPOTS = {
     },
     "broad": {
         "name": "Broad Beach",
+        "break_type": "BEACH BREAK",
+        "nws_zone": "CAZ362",
         "latitude": 34.0344,
         "longitude": -118.8508,
         "wind_profile": {
@@ -82,6 +95,8 @@ SPOTS = {
     },
     "el_porto": {
         "name": "El Porto 35th",
+        "break_type": "BEACH BREAK",
+        "nws_zone": "CAZ366",
         "latitude": 33.898814,
         "longitude": -118.420983,
         "wind_profile": {
@@ -96,6 +111,7 @@ VENICE = SPOTS["venice"]
 
 OPEN_METEO_URL = "https://marine-api.open-meteo.com/v1/marine"
 OPEN_METEO_WEATHER_URL = "https://api.open-meteo.com/v1/forecast"
+NWS_ALERTS_URL = "https://api.weather.gov/alerts/active"
 
 NOAA_TIDE_URL = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter"
 NOAA_TIDE_STATION = "9410840"
@@ -1786,6 +1802,100 @@ def index():
     )
 
 
+def get_nws_hazards(spot_key):
+    spot = SPOTS[spot_key]
+    cached = ALERT_CACHE[spot_key]
+    now = time.time()
+
+    if (
+        cached["data"] is not None
+        and now - cached["timestamp"] < CACHE_TTL
+    ):
+        return cached["data"]
+
+    relevant_terms = (
+        "beach hazards",
+        "high surf",
+        "rip current",
+        "coastal flood",
+        "coastal hazard",
+        "tsunami",
+    )
+
+    try:
+        response = requests.get(
+            NWS_ALERTS_URL,
+            params={
+                "zone": spot["nws_zone"]
+            },
+            headers={
+                "User-Agent": (
+                    "Surf Intel "
+                    "(personal surf conditions app)"
+                ),
+                "Accept": "application/geo+json",
+            },
+            timeout=8,
+        )
+        response.raise_for_status()
+
+        features = response.json().get("features", [])
+        hazards = []
+
+        for feature in features:
+            properties = feature.get("properties", {})
+            event = properties.get("event") or ""
+            headline = properties.get("headline") or ""
+            description = properties.get("description") or ""
+            instruction = properties.get("instruction") or ""
+
+            searchable = " ".join([
+                event,
+                headline,
+                description,
+                instruction,
+            ]).lower()
+
+            if not any(
+                term in searchable
+                for term in relevant_terms
+            ):
+                continue
+
+            hazards.append({
+                "event": event,
+                "headline": headline,
+                "description": description,
+                "instruction": instruction,
+                "severity": properties.get("severity"),
+                "certainty": properties.get("certainty"),
+                "urgency": properties.get("urgency"),
+                "effective": properties.get("effective"),
+                "expires": properties.get("expires"),
+                "sender_name": properties.get("senderName"),
+            })
+
+        result = {
+            "active": bool(hazards),
+            "alerts": hazards,
+        }
+
+        cached["data"] = result
+        cached["timestamp"] = now
+
+        return result
+
+    except requests.RequestException:
+        if cached["data"] is not None:
+            return cached["data"]
+
+        return {
+            "active": False,
+            "alerts": [],
+            "unavailable": True,
+        }
+
+
 @app.route("/api/marine")
 
 def marine():
@@ -1840,6 +1950,7 @@ def marine():
     )
 
     rain_lockout = get_rain_lockout(data)
+    nws_hazards = get_nws_hazards(spot_key)
 
     if (
         rain_lockout["active"]
@@ -1876,6 +1987,8 @@ def marine():
         "session_mode": session_mode,
         "session_forecast": session_forecast,
         "rain_lockout": rain_lockout,
+        "nws_hazards": nws_hazards,
+        "break_type": spot.get("break_type"),
         "window": window,
         "tide": tide,
         "water_temperature_f": celsius_to_fahrenheit(

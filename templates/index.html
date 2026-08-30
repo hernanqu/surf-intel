@@ -676,6 +676,33 @@
     color: #8FE3C2 !important;
 }
 
+
+        .nws-hazard-banner {
+            margin: 18px 0 22px;
+            padding: 14px 0;
+            border-top: 1px solid rgba(255,255,255,0.35);
+            border-bottom: 1px solid rgba(255,255,255,0.35);
+            text-transform: uppercase;
+        }
+
+        .nws-hazard-title {
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+        }
+
+        .nws-hazard-detail {
+            line-height: 1.4;
+            opacity: 0.95;
+        }
+
+        .nws-hazard-meta {
+            margin-top: 6px;
+            font-size: 0.85em;
+            letter-spacing: 0.06em;
+            opacity: 0.75;
+        }
+
 </style>
 </head>
 
@@ -697,6 +724,12 @@
                 <div class="dawn-meta" id="dawnMeta" style="display:none;"></div>
                 <div class="surf-message" id="surfMessage"></div>
             </div>
+
+            <div
+                id="nwsHazardBanner"
+                class="nws-hazard-banner"
+                style="display: none;"
+            ></div>
 
             <div class="spot-list">
 
@@ -747,6 +780,11 @@
                             <div class="condition">
                                 <div class="condition-label">WAVES</div>
                                 <div class="condition-value wave-height">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">BREAK TYPE</div>
+                                <div class="condition-value break-type">--</div>
                             </div>
 
                             <div class="condition">
@@ -826,6 +864,11 @@
                             </div>
 
                             <div class="condition">
+                                <div class="condition-label">BREAK TYPE</div>
+                                <div class="condition-value break-type">--</div>
+                            </div>
+
+                            <div class="condition">
                                 <div class="condition-label">SWELL</div>
                                 <div class="condition-value swell-components">--</div>
                             </div>
@@ -902,6 +945,11 @@
                             </div>
 
                             <div class="condition">
+                                <div class="condition-label">BREAK TYPE</div>
+                                <div class="condition-value break-type">--</div>
+                            </div>
+
+                            <div class="condition">
                                 <div class="condition-label">SWELL</div>
                                 <div class="condition-value swell-components">--</div>
                             </div>
@@ -974,6 +1022,11 @@
                             <div class="condition">
                                 <div class="condition-label">WAVES</div>
                                 <div class="condition-value wave-height">--</div>
+                            </div>
+
+                            <div class="condition">
+                                <div class="condition-label">BREAK TYPE</div>
+                                <div class="condition-value break-type">--</div>
                             </div>
 
                             <div class="condition">
@@ -1118,6 +1171,99 @@ function dawnReason(data, assessment) {
     }
 
     return assessment.reason;
+}
+
+
+const nwsAlertsSeen = new Map();
+
+function renderNwsHazards(data) {
+    const banner =
+        document.getElementById("nwsHazardBanner");
+
+    if (!banner) {
+        return;
+    }
+
+    const hazardData = data.nws_hazards || {};
+    const alerts = hazardData.alerts || [];
+
+    alerts.forEach(alert => {
+        const key =
+            alert.headline ||
+            alert.event ||
+            alert.description;
+
+        if (!key) {
+            return;
+        }
+
+        nwsAlertsSeen.set(key, alert);
+    });
+
+    if (!nwsAlertsSeen.size) {
+        banner.style.display = "none";
+        return;
+    }
+
+    const alert =
+        Array.from(nwsAlertsSeen.values())[0];
+
+    const event =
+        alert.event || "NWS BEACH HAZARD";
+
+    let detail = "";
+
+    if (alert.description) {
+        const match =
+            alert.description.match(
+                /\* WHAT\.\.\.([^*]+)/
+            );
+
+        if (match && match[1]) {
+            detail = match[1]
+                .replace(/\s+/g, " ")
+                .trim();
+        }
+    }
+
+    let expires = "";
+
+    if (alert.expires) {
+        const date = new Date(alert.expires);
+
+        expires =
+            "NWS · THROUGH " +
+            date.toLocaleString(
+                "en-US",
+                {
+                    weekday: "short",
+                    hour: "numeric",
+                    minute: "2-digit"
+                }
+            ).toUpperCase();
+    }
+
+    banner.innerHTML =
+        '<div class="nws-hazard-title">' +
+        '⚠ ' +
+        event.toUpperCase() +
+        '</div>' +
+        (
+            detail
+                ? '<div class="nws-hazard-detail">' +
+                  detail.toUpperCase() +
+                  '</div>'
+                : ''
+        ) +
+        (
+            expires
+                ? '<div class="nws-hazard-meta">' +
+                  expires +
+                  '</div>'
+                : ''
+        );
+
+    banner.style.display = "";
 }
 
 
@@ -1305,6 +1451,15 @@ function renderSpot(panel, data) {
         assessment.wave_height_range != null
             ? assessment.wave_height_range
             : "--";
+
+    const breakTypeElement = panel.querySelector(".break-type");
+
+    if (breakTypeElement) {
+        breakTypeElement.textContent =
+            data.break_type || "--";
+    }
+
+    renderNwsHazards(data);
 
 
     const swellElement = panel.querySelector(".swell-components");
