@@ -20,23 +20,23 @@
             --text: #f5f5f5;
             --muted: #6d6d6d;
             --divider: #262626;
-            --accent: #666666;
+            --accent: #8FE3C2;
         }
 
         body.status-go {
-            --accent: #874cff;
+            --accent: var(--text);
         }
 
         body.status-no-go {
-            --accent: #4c8dff;
+            --accent: var(--text);
         }
 
         body.status-yewww {
-            --accent: #874cff;
+            --accent: var(--text);
         }
 
         body.status-dangerous {
-            --accent: #ff2b2b;
+            --accent: var(--text);
         }
 
         html,
@@ -506,19 +506,19 @@
         }
 
         .spot-panel.status-yewww {
-            --accent: #874cff;
+            --accent: var(--text);
         }
 
         .spot-panel.status-go {
-            --accent: #4c8dff;
+            --accent: var(--text);
         }
 
         .spot-panel.status-nah {
-            --accent: #ff2b2b;
+            --accent: var(--text);
         }
 
         .spot-panel.status-zzz {
-            --accent: #666666;
+            --accent: var(--text);
         }
 
     
@@ -1432,12 +1432,12 @@ if (
     if (surfMessage) {
         const surfSchedule = [
             "SUN   FULL REST",
-            "MON   SURF SESH · PADDLE OUT",
-            "TUE   SURF SESH · PADDLE OUT",
+            "MON   SESH · PADDLE OUT",
+            "TUE   SESH · PADDLE OUT",
             "WED   ACTIVE REST · STRAND WALK",
-            "THU   SURF SESH · PADDLE OUT",
-            "FRI   SURF SESH · PADDLE OUT",
-            "SAT   SURF SESH · PADDLE OUT"
+            "THU   SESH · PADDLE OUT",
+            "FRI   SESH · PADDLE OUT",
+            "SAT   SESH · PADDLE OUT"
         ];
 
         const now = new Date();
